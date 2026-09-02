@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { TopUpRobux } from "@/components/TopUpRobux";
@@ -15,17 +15,25 @@ import { AllPackagesModal } from "@/components/modals/AllPackagesModal";
 import { CaraOrderModal } from "@/components/modals/CaraOrderModal";
 import { FaqModal } from "@/components/modals/FaqModal";
 
-// Data & Types
+// Default Initial Data & Types
 import {
-  ROBUX_PACKAGES,
-  ALL_ROBUX_PACKAGES,
-  TESTIMONIALS,
+  ROBUX_PACKAGES as INITIAL_ROBUX_PACKAGES,
+  ALL_ROBUX_PACKAGES as INITIAL_ALL_PACKAGES,
+  TESTIMONIALS as INITIAL_TESTIMONIALS,
   PAYMENT_METHODS,
 } from "@/data/landingData";
-import { RobuxPackage, RobloxUser } from "@/types/landing";
+import { RobuxPackage, RobloxUser, Testimonial } from "@/types/landing";
 
 export default function ZerlyGamersPage() {
-  const [selectedPackage, setSelectedPackage] = useState<RobuxPackage>(ROBUX_PACKAGES[2]); // Default 240 Robux
+  // Live API States
+  const [packages, setPackages] = useState<RobuxPackage[]>(INITIAL_ROBUX_PACKAGES);
+  const [allPackages, setAllPackages] = useState<RobuxPackage[]>(INITIAL_ALL_PACKAGES);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
+  const [whatsappNumber, setWhatsappNumber] = useState("6285624595886");
+  const [storeName, setStoreName] = useState("Zerly Gamers");
+
+  // Selected Order State
+  const [selectedPackage, setSelectedPackage] = useState<RobuxPackage>(INITIAL_ROBUX_PACKAGES[2]); // Default 240 Robux
   const [userId, setUserId] = useState("");
   const [robloxUser, setRobloxUser] = useState<RobloxUser | null>(null);
   const [orderMethod, setOrderMethod] = useState<"website" | "whatsapp">("website");
@@ -39,17 +47,96 @@ export default function ZerlyGamersPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [formError, setFormError] = useState("");
 
+  // 1. Fetch live products from /api/products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const active = json.data.filter((p: any) => p.is_active !== false);
+          if (active.length > 0) {
+            const mapped: RobuxPackage[] = active.map((p: any) => ({
+              id: p.id,
+              amount: Number(p.robux),
+              priceFormatted: `Rp ${Number(p.price).toLocaleString("id-ID")}`,
+              priceNumber: Number(p.price),
+              isBestSeller: p.badge === "POPULER" || p.badge === "PROMO" || p.robux === 240,
+            }));
+
+            setAllPackages(mapped);
+            setPackages(mapped.slice(0, 6));
+
+            // Select default best seller or first package
+            const bestSeller = mapped.find((p) => p.isBestSeller) || mapped[0];
+            if (bestSeller) setSelectedPackage(bestSeller);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load products from API:", e);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // 2. Fetch live testimonials with admin_reply from /api/testimonials
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const res = await fetch("/api/testimonials");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const approved = json.data.filter((t: any) => t.status === "approved" || !t.status);
+          if (approved.length > 0) {
+            const mapped: Testimonial[] = approved.map((t: any) => ({
+              id: t.id,
+              username: t.username || "@Gamer",
+              avatar: t.image_path || "",
+              text: t.comment || t.message || "Top up di Zerly Gamers selalu cepat & aman!",
+              stars: Number(t.rating) || 5,
+              adminReply: t.admin_reply || null,
+            }));
+            setTestimonials(mapped);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load testimonials from API:", e);
+      }
+    };
+
+    fetchTestimonials();
+  }, []);
+
+  // 3. Fetch store settings from /api/settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (json.data.whatsapp_number) setWhatsappNumber(json.data.whatsapp_number);
+          if (json.data.store_name) setStoreName(json.data.store_name);
+        }
+      } catch (e) {
+        console.error("Failed to load settings from API:", e);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
   const handleSelectPackage = (pkg: RobuxPackage) => {
     setSelectedPackage(pkg);
     setFormError("");
   };
 
   const handlePrevTestimonial = () => {
-    setCurrentTestimonialIndex((prev) => (prev === 0 ? TESTIMONIALS.length - 1 : prev - 1));
+    setCurrentTestimonialIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
   };
 
   const handleNextTestimonial = () => {
-    setCurrentTestimonialIndex((prev) => (prev === TESTIMONIALS.length - 1 ? 0 : prev + 1));
+    setCurrentTestimonialIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
   };
 
   const handleOpenOrder = (e: React.FormEvent) => {
@@ -69,7 +156,7 @@ export default function ZerlyGamersPage() {
     if (orderMethod === "whatsapp") {
       // Direct WhatsApp Order
       const invoiceNumber = `ZG-${Math.floor(100000 + Math.random() * 900000)}`;
-      const message = `Halo Admin Zerly Gamers, saya ingin order via WhatsApp:%0A%0A` +
+      const message = `Halo Admin ${storeName}, saya ingin order via WhatsApp:%0A%0A` +
         `*No Invoice:* ${invoiceNumber}%0A` +
         `*Paket:* ${selectedPackage.amount} Robux%0A` +
         `*Total Bayar:* ${selectedPackage.priceFormatted}%0A` +
@@ -77,26 +164,47 @@ export default function ZerlyGamersPage() {
         `*Metode Order:* Via WhatsApp Admin%0A%0A` +
         `Mohon segera diproses ya kak. Terima kasih! 💖`;
 
-      window.open(`https://wa.me/6281234567890?text=${message}`, "_blank");
+      const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+      window.open(`https://wa.me/${cleanWa}?text=${message}`, "_blank");
     } else {
       // Via Website: Open QRIS Checkout Modal
       setShowOrderModal(true);
     }
   };
 
-  const handleConfirmOrder = (details: {
+  const handleConfirmOrder = async (details: {
     whatsappNumber: string;
     notes: string;
     proofFile: File | null;
     proofUrl: string | null;
   }) => {
     setOrderSuccess(true);
-    const invoiceNumber = `ZG-${Math.floor(100000 + Math.random() * 900000)}`;
+    const invoiceNumber = `#ZLY${Math.floor(10000000 + Math.random() * 90000000)}`;
     const displayAccount = robloxUser
       ? `${robloxUser.displayName} (@${robloxUser.name})`
       : userId;
 
-    const message = `Halo Admin Zerly Gamers, saya telah upload bukti pembayaran di website:%0A%0A` +
+    // Save order to live database via /api/orders
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roblox_username: userId,
+          customer_phone: details.whatsappNumber,
+          robux: selectedPackage.amount,
+          price: selectedPackage.priceNumber,
+          payment_method: "Website QRIS Otomatis",
+          roblox_user_id: robloxUser?.id ? String(robloxUser.id) : undefined,
+          customer_notes: details.notes,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to create order in DB:", err);
+    }
+
+    const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+    const message = `Halo Admin ${storeName}, saya telah order di website:%0A%0A` +
       `*No Invoice:* ${invoiceNumber}%0A` +
       `*Paket:* ${selectedPackage.amount} Robux%0A` +
       `*Total Bayar:* ${selectedPackage.priceFormatted}%0A` +
@@ -107,7 +215,7 @@ export default function ZerlyGamersPage() {
       `Mohon segera dicek & dikirim Robux-nya ya kak. Terima kasih! 💖`;
 
     setTimeout(() => {
-      window.open(`https://wa.me/6281234567890?text=${message}`, "_blank");
+      window.open(`https://wa.me/${cleanWa}?text=${message}`, "_blank");
     }, 1500);
   };
 
@@ -137,7 +245,7 @@ export default function ZerlyGamersPage() {
         {/* Section 3: Main Product & Order Grid */}
         <section id="topup" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
           <TopUpRobux
-            packages={ROBUX_PACKAGES}
+            packages={packages}
             selectedPackage={selectedPackage}
             onSelectPackage={handleSelectPackage}
             onOpenAllPackages={() => setShowAllPackagesModal(true)}
@@ -146,7 +254,7 @@ export default function ZerlyGamersPage() {
           <FormOrder
             selectedPackage={selectedPackage}
             onSelectPackage={handleSelectPackage}
-            allPackages={ALL_ROBUX_PACKAGES}
+            allPackages={allPackages}
             userId={userId}
             onUserIdChange={(val) => {
               setUserId(val);
@@ -161,11 +269,11 @@ export default function ZerlyGamersPage() {
           />
         </section>
 
-        {/* Section 4: Why Choose Us & Testimonials */}
-        <section className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch relative z-20">
+        {/* Section 4: Why Choose Us & Testimonials (Compact, items-start to prevent vertical stretching) */}
+        <section className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
           <WhyChooseUs />
           <Testimonials
-            testimonials={TESTIMONIALS}
+            testimonials={testimonials}
             currentIndex={currentTestimonialIndex}
             onPrev={handlePrevTestimonial}
             onNext={handleNextTestimonial}
@@ -196,7 +304,7 @@ export default function ZerlyGamersPage() {
       <AllPackagesModal
         isOpen={showAllPackagesModal}
         onClose={() => setShowAllPackagesModal(false)}
-        allPackages={ALL_ROBUX_PACKAGES}
+        allPackages={allPackages}
         selectedPackage={selectedPackage}
         onSelectPackage={handleSelectPackage}
       />
