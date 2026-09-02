@@ -5,7 +5,7 @@ import { ShieldCheck, Zap, Award, Headphones, Wallet } from "lucide-react";
 
 export const WhyChooseUs: React.FC = () => {
   return (
-    <div className="lg:col-span-7 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col justify-between gap-3.5 sm:gap-4">
+    <div className="lg:col-span-7 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5">
       {/* Header with matching hexagon icon */}
       <div className="flex items-center gap-2.5 text-left">
         <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center shadow-xs">
@@ -26,10 +26,10 @@ export const WhyChooseUs: React.FC = () => {
         </h3>
       </div>
 
-      {/* 5 Features Row (Responsive Grid 2 cols on mobile -> 5 cols on lg) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 pt-1">
+      {/* 5 Features Row (Compact & Tightly Spaced) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 pt-0.5">
         {/* Feature 1 */}
-        <div className="flex flex-col items-center text-center gap-1.5 p-2 rounded-2xl bg-pink-50/40 border border-pink-100/80">
+        <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
             <ShieldCheck className="w-4.5 h-4.5" />
           </div>
@@ -44,7 +44,7 @@ export const WhyChooseUs: React.FC = () => {
         </div>
 
         {/* Feature 2 */}
-        <div className="flex flex-col items-center text-center gap-1.5 p-2 rounded-2xl bg-pink-50/40 border border-pink-100/80">
+        <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
             <Zap className="w-4.5 h-4.5" />
           </div>
@@ -59,7 +59,7 @@ export const WhyChooseUs: React.FC = () => {
         </div>
 
         {/* Feature 3 */}
-        <div className="flex flex-col items-center text-center gap-1.5 p-2 rounded-2xl bg-pink-50/40 border border-pink-100/80">
+        <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
             <Award className="w-4.5 h-4.5" />
           </div>
@@ -74,7 +74,7 @@ export const WhyChooseUs: React.FC = () => {
         </div>
 
         {/* Feature 4 */}
-        <div className="flex flex-col items-center text-center gap-1.5 p-2 rounded-2xl bg-pink-50/40 border border-pink-100/80">
+        <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
             <Headphones className="w-4.5 h-4.5" />
           </div>
@@ -89,7 +89,7 @@ export const WhyChooseUs: React.FC = () => {
         </div>
 
         {/* Feature 5 */}
-        <div className="col-span-2 sm:col-span-1 flex flex-col items-center text-center gap-1.5 p-2 rounded-2xl bg-pink-50/40 border border-pink-100/80">
+        <div className="col-span-2 sm:col-span-1 flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
             <Wallet className="w-4.5 h-4.5" />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, User, Menu, X, Home as HomeIcon, Gamepad2, HelpCircle, MessageSquare, PhoneCall, BookOpen } from "lucide-react";
 
@@ -11,28 +11,52 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenCaraOrder, onOpenFaq }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [storeName, setStoreName] = useState("Zerly Gamers");
+  const [logoPath, setLogoPath] = useState("/logo.png");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings");
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (json.data.store_name) setStoreName(json.data.store_name);
+          if (json.data.logo_image_path) setLogoPath(json.data.logo_image_path);
+        }
+      } catch (err) {
+        console.error("Failed to fetch store settings:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Split store name into primary and secondary words if applicable
+  const nameParts = storeName.trim().split(" ");
+  const mainWord = nameParts[0] || "ZERLY";
+  const subWord = nameParts.slice(1).join(" ") || "GAMERS";
 
   return (
     <>
       <header className="w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-pink-200/90 shadow-md shadow-pink-100/50 px-3.5 sm:px-6 py-0 flex items-center justify-between z-40 h-14 sm:h-16 relative">
         
-        {/* 1. Left: Brand Logo & Text */}
+        {/* 1. Left: Brand Logo & Dynamic Store Name from API */}
         <div className="flex items-center">
-          <a href="#" className="flex items-center gap-2 transition-transform active:scale-95">
+          <a href="#" className="flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-95 group">
             <Image
-              src="/logo.png"
-              alt="Zerly Gamers Logo"
+              src={logoPath}
+              alt={storeName}
               width={160}
               height={55}
               priority
-              className="object-contain drop-shadow-xs h-10 sm:h-11 w-auto"
+              className="object-contain drop-shadow-xs h-9 sm:h-11 w-auto group-hover:scale-105 transition-transform"
             />
-            <div className="flex md:hidden flex-col text-left">
-              <span className="text-[13px] font-black text-[#FF1D7E] leading-none tracking-wider">
-                ZERLY
+            {/* Dynamic Store Name Display (Loaded from /api/settings) */}
+            <div className="flex flex-col text-left">
+              <span className="text-xs sm:text-sm lg:text-base font-black text-[#FF1D7E] leading-none tracking-wider uppercase">
+                {mainWord}
               </span>
-              <span className="text-[9px] font-black text-gray-500 tracking-widest leading-none mt-0.5">
-                GAMERS
+              <span className="text-[8.5px] sm:text-[9.5px] font-black text-gray-500 tracking-widest leading-none mt-0.5 uppercase">
+                {subWord}
               </span>
             </div>
           </a>

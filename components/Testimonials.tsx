@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, ShieldCheck } from "lucide-react";
 import { Testimonial } from "@/types/landing";
 
 interface TestimonialsProps {
@@ -15,6 +15,15 @@ interface TestimonialsProps {
 const getInitial = (name: string) => {
   const clean = name.replace(/^@/, "").trim();
   return clean.charAt(0).toUpperCase() || "G";
+};
+
+const getAdminReplyText = (reply: any): string | null => {
+  if (!reply) return null;
+  if (typeof reply === "string") return reply;
+  if (typeof reply === "object") {
+    return reply.message || reply.text || reply.content || (typeof reply === "string" ? reply : null);
+  }
+  return null;
 };
 
 // Array of soft vibrant gaming gradient styles for initials
@@ -32,14 +41,20 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
   onPrev,
   onNext,
 }) => {
-  const current = testimonials[currentIndex];
+  if (!testimonials || testimonials.length === 0) {
+    return null;
+  }
+
+  const safeIndex = currentIndex >= testimonials.length ? 0 : currentIndex;
+  const current = testimonials[safeIndex];
   const initial = getInitial(current.username);
-  const gradientClass = AVATAR_GRADIENTS[currentIndex % AVATAR_GRADIENTS.length];
+  const gradientClass = AVATAR_GRADIENTS[safeIndex % AVATAR_GRADIENTS.length];
+  const adminReplyText = getAdminReplyText(current.adminReply);
 
   return (
     <div
       id="testimoni"
-      className="lg:col-span-5 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-5 shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden"
+      className="lg:col-span-5 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5 relative overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between text-left">
@@ -49,7 +64,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
       </div>
 
       {/* Testimonial Box with Carousel Controls */}
-      <div className="flex items-center gap-2 bg-pink-50/70 border border-pink-200 rounded-2xl p-3.5 relative z-10 my-auto">
+      <div className="flex items-center gap-2 bg-pink-50/70 border border-pink-200 rounded-2xl p-3 sm:p-3.5 relative z-10">
         {/* Prev Button */}
         <button
           onClick={onPrev}
@@ -60,29 +75,45 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
         </button>
 
         {/* Review Content */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
           {/* Initial Letter Avatar */}
           <div
-            className={`w-11 h-11 rounded-full bg-gradient-to-tr ${gradientClass} text-white font-black text-lg flex items-center justify-center border-2 border-white shadow-sm shrink-0 select-none`}
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr ${gradientClass} text-white font-black text-base sm:text-lg flex items-center justify-center border-2 border-white shadow-sm shrink-0 select-none mt-0.5`}
           >
             {initial}
           </div>
 
-          {/* Text & Rating */}
+          {/* Text & Rating & Optional Admin Reply */}
           <div className="flex flex-col text-left min-w-0 flex-1">
+            {/* Username & Rating Stars */}
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-gray-800 truncate">
                 {current.username}
               </span>
-              <div className="flex items-center text-amber-400">
+              <div className="flex items-center text-amber-400 shrink-0">
                 {[...Array(current.stars)].map((_, i) => (
                   <Star key={i} className="w-3 h-3 fill-amber-400" />
                 ))}
               </div>
             </div>
-            <p className="text-[11.5px] text-gray-600 font-medium leading-snug line-clamp-2 mt-0.5">
+
+            {/* Customer Review Text */}
+            <p className="text-[11px] sm:text-[11.5px] text-gray-600 font-medium leading-snug line-clamp-2 mt-0.5">
               {current.text}
             </p>
+
+            {/* Admin Reply (Compact, Clean & Layout-Safe) */}
+            {adminReplyText && (
+              <div className="mt-1.5 pt-1.5 border-t border-pink-200/60 flex items-start gap-1 text-[10.5px]">
+                <div className="flex items-center gap-1 text-[#FF1D7E] font-black shrink-0 text-[10px] bg-pink-100/90 border border-pink-200 px-1.5 py-0.2 rounded-md">
+                  <ShieldCheck className="w-3 h-3 text-[#FF2E88]" />
+                  <span>Admin:</span>
+                </div>
+                <p className="text-gray-700 italic font-medium leading-tight truncate">
+                  &ldquo;{adminReplyText}&rdquo;
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -97,12 +128,12 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
       </div>
 
       {/* Subtle indicator dots */}
-      <div className="flex items-center justify-center gap-1.5 pt-1">
+      <div className="flex items-center justify-center gap-1.5 pt-0.5">
         {testimonials.map((_, idx) => (
           <div
             key={idx}
             className={`h-1.5 rounded-full transition-all ${
-              idx === currentIndex ? "w-5 bg-[#FF2E88]" : "w-1.5 bg-pink-200"
+              idx === safeIndex ? "w-5 bg-[#FF2E88]" : "w-1.5 bg-pink-200"
             }`}
           />
         ))}
