@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   RefreshCw,
@@ -17,13 +17,15 @@ import {
   ShieldCheck,
   Check,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { AdminTestimonial, DUMMY_TESTIMONIALS } from '@/data/adminDummyData';
+import { AdminTestimonial } from '@/data/adminDummyData';
 
 export default function TestimonialsView() {
-  const [testimonials, setTestimonials] = useState<AdminTestimonial[]>(DUMMY_TESTIMONIALS);
+  const [testimonials, setTestimonials] = useState<AdminTestimonial[]>([]);
   const [activeFilterTab, setActiveFilterTab] = useState<'semua' | 'aktif' | 'sembunyi' | 'perlu-balasan'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modal State for Add / Edit
@@ -33,10 +35,69 @@ export default function TestimonialsView() {
   const [ratingInput, setRatingInput] = useState(5);
   const [commentInput, setCommentInput] = useState('');
   const [packageInput, setPackageInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modal State for Reply
   const [replyingItem, setReplyingItem] = useState<AdminTestimonial | null>(null);
   const [replyInput, setReplyInput] = useState('');
+
+  const fetchTestimonials = useCallback(async () => {
+    try {
+      const res = await fetch('/api/testimonials', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const formatted: AdminTestimonial[] = data.data.map((t: any) => {
+          let replyText = '';
+          if (t.admin_reply) {
+            if (typeof t.admin_reply === 'string') {
+              replyText = t.admin_reply;
+            } else if (t.admin_reply.message) {
+              replyText = t.admin_reply.message;
+            } else {
+              replyText = JSON.stringify(t.admin_reply);
+            }
+          }
+
+          const dateObj = new Date(t.created_at);
+          const timeStr = dateObj.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+
+          return {
+            id: String(t.id),
+            username: t.username,
+            rating: Number(t.rating || 5),
+            timeAgo: timeStr,
+            itemPackage: t.item_package || '2.200 Robux',
+            comment: t.comment,
+            isVerified: true,
+            status: t.status === 'approved' ? 'tampil' : 'sembunyi',
+            adminReply: replyText,
+          };
+        });
+        setTestimonials(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to load testimonials:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTestimonials();
+  }, [fetchTestimonials]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchTestimonials();
+  };
 
   // Computed Metrics
   const totalCount = testimonials.length;
@@ -73,11 +134,6 @@ export default function TestimonialsView() {
     return list;
   }, [testimonials, activeFilterTab, searchQuery]);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
   const handleOpenAddModal = () => {
     setEditingItem(null);
     setUsernameInput('');
@@ -96,21 +152,42 @@ export default function TestimonialsView() {
     setShowAddModal(true);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setTestimonials((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status: t.status === 'tampil' ? 'sembunyi' : 'tampil' } : t
-      )
-    );
-  };
-
-  const handleDeleteTestimonial = (id: string) => {
-    if (confirm('Hapus testimoni ini?')) {
-      setTestimonials((prev) => prev.filter((t) => t.id !== id));
+  const handleToggleStatus = async (item: AdminTestimonial) => {
+    const nextStatus = item.status === 'tampil' ? 'pending' : 'approved';
+    try {
+      const res = await fetch('/api/testimonials', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, status: nextStatus }),
+      });
+      if (res.ok) {
+        setTestimonials((prev) =>
+          prev.map((t) =>
+            t.id === item.id ? { ...t, status: nextStatus === 'approved' ? 'tampil' : 'sembunyi' } : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
     }
   };
 
-  const handleSaveTestimonial = (e: React.FormEvent) => {
+  const handleDeleteTestimonial = async (id: string) => {
+    if (confirm('Hapus testimoni ini dari database?')) {
+      try {
+        const res = await fetch(`/api/testimonials?id=${id}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setTestimonials((prev) => prev.filter((t) => t.id !== id));
+        }
+      } catch (err) {
+        console.error('Failed to delete testimonial:', err);
+      }
+    }
+  };
+
+  const handleSaveTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim() || !commentInput.trim()) {
       alert('Harap isi username dan ulasan testimoni!');
@@ -120,35 +197,46 @@ export default function TestimonialsView() {
     const cleanUsername = usernameInput.startsWith('@') ? usernameInput.trim() : `@${usernameInput.trim()}`;
     const cleanPackage = packageInput.trim() || '2.200 Robux';
 
-    if (editingItem) {
-      setTestimonials((prev) =>
-        prev.map((t) =>
-          t.id === editingItem.id
-            ? {
-                ...t,
-                username: cleanUsername,
-                rating: ratingInput,
-                comment: commentInput.trim(),
-                itemPackage: cleanPackage,
-              }
-            : t
-        )
-      );
-    } else {
-      const newItem: AdminTestimonial = {
-        id: 't-' + Date.now(),
-        username: cleanUsername,
-        rating: ratingInput,
-        timeAgo: 'Baru saja',
-        itemPackage: cleanPackage,
-        comment: commentInput.trim(),
-        isVerified: true,
-        status: 'tampil',
-        adminReply: '',
-      };
-      setTestimonials((prev) => [newItem, ...prev]);
+    setIsSubmitting(true);
+    try {
+      if (editingItem) {
+        const res = await fetch('/api/testimonials', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingItem.id,
+            name: cleanUsername,
+            rating: ratingInput,
+            message: commentInput.trim(),
+            order_code: cleanPackage,
+          }),
+        });
+        if (res.ok) {
+          fetchTestimonials();
+          setShowAddModal(false);
+        }
+      } else {
+        const res = await fetch('/api/testimonials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: cleanUsername,
+            rating: ratingInput,
+            message: commentInput.trim(),
+            order_code: cleanPackage,
+            status: 'approved',
+          }),
+        });
+        if (res.ok) {
+          fetchTestimonials();
+          setShowAddModal(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save testimonial:', err);
+    } finally {
+      setIsSubmitting(false);
     }
-    setShowAddModal(false);
   };
 
   const handleOpenReplyModal = (item: AdminTestimonial) => {
@@ -156,16 +244,30 @@ export default function TestimonialsView() {
     setReplyInput(item.adminReply || '');
   };
 
-  const handleSaveReply = (e: React.FormEvent) => {
+  const handleSaveReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyingItem) return;
 
-    setTestimonials((prev) =>
-      prev.map((t) =>
-        t.id === replyingItem.id ? { ...t, adminReply: replyInput.trim() } : t
-      )
-    );
-    setReplyingItem(null);
+    try {
+      const res = await fetch('/api/testimonials', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: replyingItem.id,
+          admin_reply: replyInput.trim() ? { message: replyInput.trim() } : null,
+        }),
+      });
+      if (res.ok) {
+        setTestimonials((prev) =>
+          prev.map((t) =>
+            t.id === replyingItem.id ? { ...t, adminReply: replyInput.trim() } : t
+          )
+        );
+        setReplyingItem(null);
+      }
+    } catch (err) {
+      console.error('Failed to save reply:', err);
+    }
   };
 
   return (
@@ -175,17 +277,17 @@ export default function TestimonialsView() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200">
-              Social Proof
+              Live Database Neon
             </span>
             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Zerly Testimonials
+              <Sparkles className="w-3.5 h-3.5" /> Zerly Real Reviews
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">
             Kelola Testimoni &amp; Ulasan
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium">
-            Moderasi ulasan pembeli, tambah ulasan manual, balas testimoni, dan kontrol publikasi di website
+            Moderasi ulasan pembeli langsung tersimpan dan terpublikasi dari database real
           </p>
         </div>
 
@@ -313,11 +415,16 @@ export default function TestimonialsView() {
 
         {/* List of Testimonials */}
         <div className="space-y-3.5">
-          {filteredTestimonials.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16 text-rose-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-semibold">Memuat ulasan testimoni...</span>
+            </div>
+          ) : filteredTestimonials.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 text-rose-300" />
               <p className="text-sm font-semibold text-gray-600">
-                Tidak ada testimoni yang sesuai filter.
+                Belum ada testimoni tersimpan di database.
               </p>
             </div>
           ) : (
@@ -372,7 +479,7 @@ export default function TestimonialsView() {
                   <div className="flex items-center gap-1.5 shrink-0 self-start">
                     {/* Toggle Tampil / Sembunyikan */}
                     <button
-                      onClick={() => handleToggleStatus(item.id)}
+                      onClick={() => handleToggleStatus(item)}
                       className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         item.status === 'tampil'
                           ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
@@ -397,7 +504,7 @@ export default function TestimonialsView() {
                       onClick={() => handleOpenEditModal(item)}
                       className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition-all cursor-pointer"
                     >
-                      <Edit2 className="w-3 h-3" />
+                      <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>
                     </button>
 
@@ -406,7 +513,7 @@ export default function TestimonialsView() {
                       onClick={() => handleOpenReplyModal(item)}
                       className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-all cursor-pointer"
                     >
-                      <CornerDownRight className="w-3 h-3" />
+                      <CornerDownRight className="w-3.5 h-3.5" />
                       <span>Balas</span>
                     </button>
 
@@ -539,9 +646,11 @@ export default function TestimonialsView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
-                  {editingItem ? 'Simpan Perubahan' : 'Tambah Testimoni'}
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingItem ? 'Simpan Perubahan' : 'Tambah Testimoni'}</span>
                 </button>
               </div>
             </form>
