@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import {
   ShoppingBag,
@@ -37,12 +37,14 @@ import {
   Store,
   RefreshCw,
   ArrowRight,
+  Heart,
 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import RobloxWarningCard from '@/components/admin/RobloxWarningCard';
 import AdminNotesCard from '@/components/admin/AdminNotesCard';
 import OrderDetailView from '@/components/admin/OrderDetailView';
+import TestimonialTokenModal from '@/components/admin/TestimonialTokenModal';
 import PricelistRobuxView from '@/components/admin/PricelistRobuxView';
 import CustomerListView from '@/components/admin/CustomerListView';
 import BlacklistView from '@/components/admin/BlacklistView';
@@ -50,9 +52,6 @@ import TestimonialsView from '@/components/admin/TestimonialsView';
 import PaymentHistoryView from '@/components/admin/PaymentHistoryView';
 import StoreSettingsView from '@/components/admin/StoreSettingsView';
 import {
-  DUMMY_ORDERS,
-  DUMMY_PRICELIST,
-  DUMMY_CUSTOMERS,
   AdminOrder,
   AdminPricelistItem,
   AdminCustomer,
@@ -65,11 +64,126 @@ export default function AdminPage() {
   const [showAllActivitiesModal, setShowAllActivitiesModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // Orders State (allows interactive status change)
-  const [orders, setOrders] = useState<AdminOrder[]>(DUMMY_ORDERS);
-  const [customers, setCustomers] = useState<AdminCustomer[]>(DUMMY_CUSTOMERS);
+  // Orders State directly from Neon DB API
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(9);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [testimonialModalOrder, setTestimonialModalOrder] = useState<AdminOrder | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [custRes, prodRes] = await Promise.all([
+        fetch('/api/customers', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }),
+        fetch('/api/products', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }),
+      ]);
+      const [custData, prodData] = await Promise.all([custRes.json(), prodRes.json()]);
+      if (custData.success && Array.isArray(custData.data)) {
+        setTotalCustomers(custData.data.length);
+      }
+      if (prodData.success && Array.isArray(prodData.data)) {
+        setTotalProducts(prodData.data.length);
+      }
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/orders', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const mappedOrders: AdminOrder[] = data.data.map((o: any) => {
+          const dateObj = new Date(o.created_at);
+          const createdAtStr = dateObj.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const fullDateStr = dateObj.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }) + ' WIB';
+
+          let statusKey: AdminOrder['status'] = 'masuk';
+          let statusLabel = 'Menunggu Pembayaran';
+
+          if (o.order_status === 'processing') {
+            statusKey = 'diproses';
+            statusLabel = 'Sedang Diproses';
+          } else if (o.order_status === 'completed') {
+            statusKey = 'selesai';
+            statusLabel = 'Transaksi Sukses';
+          } else if (o.order_status === 'cancelled') {
+            statusKey = 'dibatalkan';
+            statusLabel = 'Pesanan Dibatalkan';
+          }
+
+          const channel: 'WHATSAPP' | 'WEBSITE' =
+            o.payment_method?.toLowerCase().includes('whatsapp') || o.payment_method?.toLowerCase().includes('wa')
+              ? 'WHATSAPP'
+              : 'WEBSITE';
+
+          return {
+            id: String(o.id),
+            orderNumber: o.order_code,
+            customerName: o.roblox_username.replace('@', ''),
+            username: o.roblox_username,
+            robloxUserId: o.roblox_user_id || undefined,
+            whatsappNumber: o.customer_phone || undefined,
+            game: 'Roblox',
+            item: `${Number(o.robux).toLocaleString('id-ID')} Robux`,
+            amount: Number(o.robux),
+            price: Number(o.price),
+            priceFormatted: 'Rp ' + Number(o.price).toLocaleString('id-ID'),
+            paymentMethod: o.payment_method,
+            orderChannel: channel,
+            status: statusKey,
+            statusLabel: statusLabel,
+            createdAt: createdAtStr,
+            fullDateString: fullDateStr,
+            robloxIdStatus: 'aktif',
+            customerNote: o.customer_notes || undefined,
+            adminNote: o.admin_notes || undefined,
+          };
+        });
+        setOrders(mappedOrders);
+      }
+    } catch (err) {
+      console.error('Failed to load orders from API:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    fetchStats();
+    // Real-time live polling every 5 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchStats();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchOrders, fetchStats]);
+
+  const orderCounts = useMemo(() => ({
+    masuk: orders.filter((o) => o.status === 'masuk').length,
+    diproses: orders.filter((o) => o.status === 'diproses').length,
+    selesai: orders.filter((o) => o.status === 'selesai').length,
+    dibatalkan: orders.filter((o) => o.status === 'dibatalkan').length,
+  }), [orders]);
 
   // Filtered orders based on current tab & search
   const filteredOrders = useMemo(() => {
@@ -90,19 +204,34 @@ export default function AdminPage() {
         (o) =>
           o.orderNumber.toLowerCase().includes(q) ||
           o.username.toLowerCase().includes(q) ||
-          o.customerName.toLowerCase().includes(q) ||
+          (o.customerName && o.customerName.toLowerCase().includes(q)) ||
           o.item.toLowerCase().includes(q)
       );
     }
     return list;
   }, [orders, currentTab, searchQuery]);
 
-  // Handle status update
-  const handleUpdateOrderStatus = (
+  // Handle status update via API
+  const handleUpdateOrderStatus = async (
     orderId: string,
     newStatus: AdminOrder['status'],
     newLabel?: string
   ) => {
+    let dbStatus = 'pending';
+    let paymentStatus = 'pending';
+
+    if (newStatus === 'diproses') {
+      dbStatus = 'processing';
+      paymentStatus = 'paid';
+    } else if (newStatus === 'selesai') {
+      dbStatus = 'completed';
+      paymentStatus = 'paid';
+    } else if (newStatus === 'dibatalkan') {
+      dbStatus = 'cancelled';
+      paymentStatus = 'failed';
+    }
+
+    // Optimistic UI update
     setOrders((prev) =>
       prev.map((ord) =>
         ord.id === orderId
@@ -114,6 +243,7 @@ export default function AdminPage() {
           : ord
       )
     );
+
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder((prev) =>
         prev
@@ -125,29 +255,27 @@ export default function AdminPage() {
           : null
       );
     }
+
+    // Persist to Neon DB API
+    try {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: orderId,
+          order_status: dbStatus,
+          payment_status: paymentStatus,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to update order status in DB:', err);
+      fetchOrders();
+    }
   };
 
   const handleRefreshData = () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 600);
-  };
-
-  const handleBlacklistCustomer = (id: string) => {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: 'blacklist' } : c))
-    );
-  };
-
-  const handleUnblockCustomer = (id: string) => {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: 'aktif' } : c))
-    );
-  };
-
-  const handleAddBlacklist = (newCust: AdminCustomer) => {
-    setCustomers((prev) => [newCust, ...prev]);
+    fetchOrders();
   };
 
   // Top metric stat cards data
@@ -155,17 +283,17 @@ export default function AdminPage() {
     {
       id: 'masuk',
       title: 'Order Masuk',
-      value: orders.filter((o) => o.status === 'masuk').length.toString() || '244',
-      change: '+12 dari kemarin ↑',
+      value: orders.filter((o) => o.status === 'masuk').length.toString(),
+      change: 'Menunggu proses',
       isPositive: true,
-      color: 'bg-pink-100 text-[#FF2A85]',
+      color: 'bg-rose-100 text-rose-600',
       iconType: 'bag',
     },
     {
       id: 'diproses',
       title: 'Order Diproses',
-      value: orders.filter((o) => o.status === 'diproses').length.toString() || '104',
-      change: '+3 dari kemarin ↑',
+      value: orders.filter((o) => o.status === 'diproses').length.toString(),
+      change: 'Sedang dikirim',
       isPositive: true,
       color: 'bg-purple-100 text-purple-600',
       iconType: 'box-purple',
@@ -173,8 +301,8 @@ export default function AdminPage() {
     {
       id: 'selesai',
       title: 'Order Selesai',
-      value: '156',
-      change: '+28 dari kemarin ↑',
+      value: orders.filter((o) => o.status === 'selesai').length.toString(),
+      change: 'Transaksi sukses',
       isPositive: true,
       color: 'bg-emerald-100 text-emerald-600',
       iconType: 'check-green',
@@ -182,7 +310,7 @@ export default function AdminPage() {
     {
       id: 'produk',
       title: 'Pricelist Robux',
-      value: '9',
+      value: totalProducts.toString(),
       change: 'Nominal Aktif',
       isNeutral: true,
       color: 'bg-pink-100 text-pink-600',
@@ -191,53 +319,60 @@ export default function AdminPage() {
     {
       id: 'pelanggan',
       title: 'Total Pelanggan',
-      value: '1.289',
-      change: '+37 pelanggan baru',
+      value: totalCustomers.toString(),
+      change: 'Pelanggan aktif',
       isPositive: true,
-      color: 'bg-pink-100 text-[#FF2A85]',
+      color: 'bg-rose-100 text-rose-600',
       iconType: 'users',
     },
   ];
 
-  // Activities timeline data
-  const activities = [
-    {
-      id: 1,
-      time: '7j lalu',
-      title: 'Pesanan 2.200 Robux dari @Raraa_notara',
-      username: '@Raraa_notara',
-      dotColor: 'bg-amber-400',
-    },
-    {
-      id: 2,
-      time: '7j lalu',
-      title: 'Pesanan 2.200 Robux dari @muachiilan',
-      username: '@muachiilan',
-      dotColor: 'bg-amber-400',
-    },
-    {
-      id: 3,
-      time: '1h lalu',
-      title: 'Pesanan 1.800 Robux dari @Kaisha2612',
-      username: '@Kaisha2612',
-      dotColor: 'bg-[#FF2A85]',
-    },
-    {
-      id: 4,
-      time: '1h lalu',
-      title: 'Pesanan 2.200 Robux dari @crasiel',
-      username: '@crasiel',
-      dotColor: 'bg-[#FF2A85]',
-    },
-  ];
+  // Activities timeline data from real orders
+  const activities = orders.slice(0, 4).map((ord) => ({
+    id: ord.id,
+    time: ord.createdAt,
+    title: `Pesanan ${ord.item} dari ${ord.username}`,
+    username: ord.username,
+    dotColor: ord.status === 'selesai' ? 'bg-emerald-500' : 'bg-rose-500',
+  }));
 
-  // Top Selling Products
-  const bestSellers = [
-    { rank: 1, name: '2200 Robux', sold: 312, medalColor: 'from-amber-400 to-yellow-500' },
-    { rank: 2, name: '3200 Robux', sold: 289, medalColor: 'from-slate-300 to-slate-400' },
-    { rank: 3, name: '1700 Robux', sold: 241, medalColor: 'from-amber-600 to-amber-700' },
-    { rank: 4, name: '1200 Robux', sold: 198, medalColor: 'from-pink-300 to-pink-400' },
-  ];
+  // Top Selling Products dynamically calculated from real orders in Neon DB
+  const bestSellers = useMemo(() => {
+    const orderCountMap: { [key: string]: { count: number; name: string } } = {};
+
+    orders.forEach((o) => {
+      const key = o.item || `${o.amount} Robux`;
+      if (!orderCountMap[key]) {
+        orderCountMap[key] = { count: 0, name: key };
+      }
+      orderCountMap[key].count += 1;
+    });
+
+    const sorted = Object.values(orderCountMap).sort((a, b) => b.count - a.count);
+
+    const medalColors = [
+      'from-amber-400 to-yellow-500', // Gold
+      'from-slate-300 to-slate-400', // Silver
+      'from-amber-600 to-amber-700', // Bronze
+      'from-rose-400 to-pink-500',   // Rose
+    ];
+
+    if (sorted.length === 0) {
+      return [
+        { rank: 1, name: '2.200 Robux', sold: 0, medalColor: medalColors[0] },
+        { rank: 2, name: '3.200 Robux', sold: 0, medalColor: medalColors[1] },
+        { rank: 3, name: '1.800 Robux', sold: 0, medalColor: medalColors[2] },
+        { rank: 4, name: '10.500 Robux', sold: 0, medalColor: medalColors[3] },
+      ];
+    }
+
+    return sorted.slice(0, 4).map((item, idx) => ({
+      rank: idx + 1,
+      name: item.name,
+      sold: item.count,
+      medalColor: medalColors[idx] || 'from-rose-400 to-pink-500',
+    }));
+  }, [orders]);
 
   const renderStatIcon = (type: string) => {
     switch (type) {
@@ -287,15 +422,25 @@ export default function AdminPage() {
         }}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        orderCounts={orderCounts}
       />
 
       {/* Main Content View */}
       <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-        {/* Top Header */}
+        {/* Top Header with Autocomplete */}
         <AdminHeader
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          orders={orders}
+          onSelectOrder={(ord) => {
+            setSelectedOrder(ord);
+            setCurrentTab('order-masuk');
+          }}
+          onSelectTab={(tab) => {
+            setCurrentTab(tab);
+            setSelectedOrder(null);
+          }}
         />
 
         {/* Dashboard Body */}
@@ -432,6 +577,16 @@ export default function AdminPage() {
                                 Proses
                               </button>
                             )}
+                            {ord.status === 'selesai' && (
+                              <button
+                                type="button"
+                                onClick={() => setTestimonialModalOrder(ord)}
+                                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-2xl text-xs font-black bg-gradient-to-r from-amber-500 to-rose-500 hover:opacity-90 text-white shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer shrink-0"
+                              >
+                                <Heart className="w-3.5 h-3.5 fill-white" />
+                                <span>Kirim Testimoni</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => setSelectedOrder(ord)}
                               className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-2xl text-xs font-black bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
@@ -451,18 +606,11 @@ export default function AdminPage() {
             /* PRICELIST ROBUX VIEW (Matching Screenshot 2 & 3) */
             <PricelistRobuxView />
           ) : currentTab === 'daftar-pelanggan' ? (
-            /* DAFTAR PELANGGAN VIEW (Matching Screenshot 1) */
-            <CustomerListView
-              customers={customers}
-              onBlacklistCustomer={handleBlacklistCustomer}
-            />
+            /* DAFTAR PELANGGAN VIEW */
+            <CustomerListView />
           ) : currentTab === 'blacklist' ? (
-            /* DAFTAR BLACKLIST VIEW (Matching Screenshot 2 & 3) */
-            <BlacklistView
-              customers={customers}
-              onAddBlacklist={handleAddBlacklist}
-              onUnblockCustomer={handleUnblockCustomer}
-            />
+            /* DAFTAR BLACKLIST VIEW */
+            <BlacklistView />
           ) : currentTab === 'kelola-testimoni' ? (
             /* KELOLA TESTIMONI VIEW (Matching User Screenshots without photo upload) */
             <TestimonialsView />
@@ -530,17 +678,20 @@ export default function AdminPage() {
               </section>
 
               {/* 2. Five Metric / Stat Cards Row */}
-              <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+              <section className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
                 {statCards.map((stat) => (
                   <div
                     key={stat.id}
                     onClick={() => {
                       if (stat.id === 'masuk') setCurrentTab('order-masuk');
                       else if (stat.id === 'diproses') setCurrentTab('order-diproses');
+                      else if (stat.id === 'selesai') setCurrentTab('order-selesai');
                       else if (stat.id === 'produk') setCurrentTab('pricelist-robux');
                       else if (stat.id === 'pelanggan') setCurrentTab('daftar-pelanggan');
                     }}
-                    className="bg-white/90 border border-pink-100/90 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex items-center gap-3.5 hover:shadow-md transition-all cursor-pointer hover:scale-[1.02]"
+                    className={`bg-white/95 border border-rose-100/90 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_-4px_rgba(244,63,94,0.06)] flex items-center gap-3.5 hover:shadow-md transition-all cursor-pointer hover:scale-[1.02] ${
+                      stat.id === 'pelanggan' ? 'col-span-2 lg:col-span-1' : ''
+                    }`}
                   >
                     {renderStatIcon(stat.iconType)}
                     <div className="min-w-0">
@@ -819,6 +970,14 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal Kirim Testimoni dengan Token */}
+      {testimonialModalOrder && (
+        <TestimonialTokenModal
+          order={testimonialModalOrder}
+          onClose={() => setTestimonialModalOrder(null)}
+        />
       )}
     </div>
   );
