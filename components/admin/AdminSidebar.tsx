@@ -28,6 +28,12 @@ interface AdminSidebarProps {
   onSelectTab?: (tab: string) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  orderCounts?: {
+    masuk?: number;
+    diproses?: number;
+    selesai?: number;
+    dibatalkan?: number;
+  };
 }
 
 export default function AdminSidebar({
@@ -35,14 +41,29 @@ export default function AdminSidebar({
   onSelectTab,
   isMobileOpen = false,
   onCloseMobile,
+  orderCounts,
 }: AdminSidebarProps) {
   const navSections = [
     {
       title: 'ORDER MANAGEMENT',
       items: [
-        { id: 'order-masuk', label: 'Order Masuk', icon: ShoppingBag, badge: '24' },
-        { id: 'order-diproses', label: 'Order Diproses', icon: Clock, badge: '8' },
-        { id: 'order-selesai', label: 'Order Selesai', icon: CheckCircle2 },
+        {
+          id: 'order-masuk',
+          label: 'Order Masuk',
+          icon: ShoppingBag,
+          badge: orderCounts?.masuk !== undefined && orderCounts.masuk > 0 ? String(orderCounts.masuk) : undefined,
+        },
+        {
+          id: 'order-diproses',
+          label: 'Order Diproses',
+          icon: Clock,
+          badge: orderCounts?.diproses !== undefined && orderCounts.diproses > 0 ? String(orderCounts.diproses) : undefined,
+        },
+        {
+          id: 'order-selesai',
+          label: 'Order Selesai',
+          icon: CheckCircle2,
+        },
         { id: 'order-dibatalkan', label: 'Order Dibatalkan', icon: XCircle },
       ],
     },
@@ -168,7 +189,7 @@ export default function AdminSidebar({
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-rose-100 text-rose-600">
+                        <span className="px-2.5 py-0.5 text-[11px] font-black rounded-full bg-rose-100 text-rose-600 border border-rose-200/60 shadow-2xs min-w-[20px] text-center">
                           {item.badge}
                         </span>
                       )}
