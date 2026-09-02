@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -14,14 +14,105 @@ import {
   ShieldCheck,
   CreditCard,
   Layers,
+  Loader2,
 } from 'lucide-react';
-import { AdminPaymentMutation, DUMMY_PAYMENT_MUTATIONS } from '@/data/adminDummyData';
+import { AdminPaymentMutation, AdminPaymentSummary } from '@/data/adminDummyData';
 
 export default function PaymentHistoryView() {
-  const [mutations, setMutations] = useState<AdminPaymentMutation[]>(DUMMY_PAYMENT_MUTATIONS);
+  const [mutations, setMutations] = useState<AdminPaymentMutation[]>([]);
+  const [summary, setSummary] = useState<AdminPaymentSummary>({
+    totalTransactions: 0,
+    totalRevenue: 0,
+    totalRevenueFormatted: 'Rp 0',
+    totalRobuxSold: 0,
+    aov: 0,
+    aovFormatted: 'Rp 0',
+    websiteRevenue: 0,
+    websiteRevenueFormatted: 'Rp 0',
+    websiteCount: 0,
+    websitePercentage: '0%',
+    whatsappRevenue: 0,
+    whatsappRevenueFormatted: 'Rp 0',
+    whatsappCount: 0,
+    whatsappPercentage: '0%',
+  });
   const [activeFilterTab, setActiveFilterTab] = useState<'semua' | 'website' | 'whatsapp'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchPayments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/payments', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const rawMutations = data.data.mutations || [];
+        const rawSum = data.data.summary || {};
+
+        const formattedMutations: AdminPaymentMutation[] = rawMutations.map((m: any) => {
+          const dateObj = new Date(m.created_at);
+          const dateStr = dateObj.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+          return {
+            id: String(m.id),
+            orderNumber: m.order_code,
+            username: m.roblox_username,
+            channel: m.channel,
+            paymentMethod: m.payment_method,
+            date: dateStr,
+            amount: Number(m.price),
+            amountFormatted: '+Rp ' + Number(m.price).toLocaleString('id-ID'),
+            robuxItem: `${Number(m.robux).toLocaleString('id-ID')} Robux`,
+            status: 'LUNAS',
+          };
+        });
+
+        const totalRev = Number(rawSum.total_revenue || 0);
+        const webRev = Number(rawSum.website_revenue || 0);
+        const waRev = Number(rawSum.whatsapp_revenue || 0);
+        const webPct = totalRev > 0 ? ((webRev / totalRev) * 100).toFixed(1) + '%' : '0%';
+        const waPct = totalRev > 0 ? ((waRev / totalRev) * 100).toFixed(1) + '%' : '0%';
+
+        setMutations(formattedMutations);
+        setSummary({
+          totalTransactions: Number(rawSum.total_transactions || 0),
+          totalRevenue: totalRev,
+          totalRevenueFormatted: 'Rp ' + totalRev.toLocaleString('id-ID'),
+          totalRobuxSold: Number(rawSum.total_robux_sold || 0),
+          aov: Number(rawSum.aov || 0),
+          aovFormatted: 'Rp ' + Number(rawSum.aov || 0).toLocaleString('id-ID'),
+          websiteRevenue: webRev,
+          websiteRevenueFormatted: 'Rp ' + webRev.toLocaleString('id-ID'),
+          websiteCount: Number(rawSum.website_count || 0),
+          websitePercentage: webPct,
+          whatsappRevenue: waRev,
+          whatsappRevenueFormatted: 'Rp ' + waRev.toLocaleString('id-ID'),
+          whatsappCount: Number(rawSum.whatsapp_count || 0),
+          whatsappPercentage: waPct,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load payments:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchPayments();
+  };
 
   const websiteCount = mutations.filter((m) => m.channel === 'WEBSITE').length;
   const whatsappCount = mutations.filter((m) => m.channel === 'WHATSAPP').length;
@@ -47,29 +138,24 @@ export default function PaymentHistoryView() {
     return list;
   }, [mutations, activeFilterTab, searchQuery]);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in zoom-in-98 duration-200">
-      {/* 1. Header (Zerly Gamers Rose & Berry Aesthetic) */}
+      {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200">
-              Kas &amp; Mutasi
+              Live Database Neon
             </span>
             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Zerly Financial Hub
+              <Sparkles className="w-3.5 h-3.5" /> Zerly Real Financials
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">
             Riwayat Pembayaran
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium">
-            Log mutasi kas masuk dan ringkasan pembayaran pesanan Robux yang berhasil
+            Log mutasi kas masuk dan ringkasan pembayaran pesanan Robux langsung dari database real
           </p>
         </div>
 
@@ -82,12 +168,12 @@ export default function PaymentHistoryView() {
         </button>
       </div>
 
-      {/* 2. Top 3 Highlight Metric Cards (Distinct Rose-Berry Glassmorphism) */}
+      {/* 2. Top 3 Highlight Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
         {/* Card 1: Total Dana Masuk */}
         <div className="bg-gradient-to-br from-white via-rose-50/30 to-pink-50/40 border border-rose-200/80 rounded-3xl p-6 shadow-[0_4px_20px_-4px_rgba(244,63,94,0.08)] relative overflow-hidden flex flex-col justify-between group hover:border-rose-300 transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-rose-400/10 rounded-full blur-xl pointer-events-none" />
-          
+
           <div className="flex items-center justify-between relative">
             <span className="text-[11px] font-black uppercase tracking-wider text-rose-600/80">
               TOTAL DANA MASUK
@@ -99,11 +185,11 @@ export default function PaymentHistoryView() {
 
           <div className="my-3 relative">
             <div className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 bg-clip-text text-transparent tracking-tight">
-              Rp 5.468.000
+              {summary.totalRevenueFormatted}
             </div>
             <p className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Dari 115 transaksi pembayaran lunas</span>
+              <span>Dari {summary.totalTransactions} transaksi pembayaran lunas</span>
             </p>
           </div>
         </div>
@@ -125,7 +211,7 @@ export default function PaymentHistoryView() {
 
           <div className="my-3 relative">
             <div className="text-2xl sm:text-3xl font-black text-amber-500 tracking-tight flex items-baseline gap-1.5">
-              <span>284.200</span>
+              <span>{summary.totalRobuxSold.toLocaleString('id-ID')}</span>
               <span className="text-sm font-black text-amber-600">R$</span>
             </div>
             <p className="text-xs text-gray-500 font-medium mt-1">
@@ -149,7 +235,7 @@ export default function PaymentHistoryView() {
 
           <div className="my-3 relative">
             <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-              Rp 47.548
+              {summary.aovFormatted}
             </div>
             <p className="text-xs text-emerald-600 font-bold mt-1">
               Average Order Value per transaksi
@@ -188,7 +274,7 @@ export default function PaymentHistoryView() {
                 </div>
               </div>
               <span className="px-3 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs">
-                89.6%
+                {summary.websitePercentage}
               </span>
             </div>
 
@@ -196,13 +282,13 @@ export default function PaymentHistoryView() {
               <div>
                 <span className="text-gray-400 font-medium block">Total Omset Masuk</span>
                 <span className="text-base sm:text-lg font-black text-rose-600">
-                  Rp 4.898.000
+                  {summary.websiteRevenueFormatted}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-gray-400 font-medium block">Volume</span>
                 <span className="text-sm font-extrabold text-gray-800">
-                  112 transaksi
+                  {summary.websiteCount} transaksi
                 </span>
               </div>
             </div>
@@ -211,7 +297,7 @@ export default function PaymentHistoryView() {
             <div className="w-full h-2.5 rounded-full bg-rose-100/60 overflow-hidden p-0.5">
               <div
                 className="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 rounded-full transition-all duration-500 shadow-xs"
-                style={{ width: '89.6%' }}
+                style={{ width: summary.websitePercentage }}
               />
             </div>
           </div>
@@ -231,7 +317,7 @@ export default function PaymentHistoryView() {
                 </div>
               </div>
               <span className="px-3 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs">
-                10.4%
+                {summary.whatsappPercentage}
               </span>
             </div>
 
@@ -239,13 +325,13 @@ export default function PaymentHistoryView() {
               <div>
                 <span className="text-gray-400 font-medium block">Total Omset Masuk</span>
                 <span className="text-base sm:text-lg font-black text-emerald-600">
-                  Rp 570.000
+                  {summary.whatsappRevenueFormatted}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-gray-400 font-medium block">Volume</span>
                 <span className="text-sm font-extrabold text-gray-800">
-                  3 transaksi
+                  {summary.whatsappCount} transaksi
                 </span>
               </div>
             </div>
@@ -254,7 +340,7 @@ export default function PaymentHistoryView() {
             <div className="w-full h-2.5 rounded-full bg-emerald-100/60 overflow-hidden p-0.5">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500 shadow-xs"
-                style={{ width: '10.4%' }}
+                style={{ width: summary.whatsappPercentage }}
               />
             </div>
           </div>
@@ -324,11 +410,16 @@ export default function PaymentHistoryView() {
 
         {/* Mutation Rows List */}
         <div className="space-y-3">
-          {filteredMutations.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16 text-rose-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-semibold">Memuat log mutasi pembayaran...</span>
+            </div>
+          ) : filteredMutations.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <Receipt className="w-12 h-12 mx-auto mb-3 text-rose-300" />
               <p className="text-sm font-semibold text-gray-600">
-                Tidak ada mutasi pembayaran ditemukan.
+                Belum ada mutasi pembayaran lunas di database.
               </p>
             </div>
           ) : (
