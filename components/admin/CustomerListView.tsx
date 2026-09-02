@@ -1,20 +1,79 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, Users, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Search, RefreshCw, Users, ShieldAlert, Sparkles, UserCheck, Loader2 } from 'lucide-react';
 import { AdminCustomer } from '@/data/adminDummyData';
 
 interface CustomerListViewProps {
-  customers: AdminCustomer[];
-  onBlacklistCustomer: (id: string) => void;
+  onBlacklistCustomer?: (id: string) => void;
 }
 
 export default function CustomerListView({
-  customers,
   onBlacklistCustomer,
 }: CustomerListViewProps) {
+  const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/customers', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const formatted: AdminCustomer[] = data.data.map((c: any, idx: number) => ({
+          id: `c-${idx}`,
+          username: c.username,
+          robloxUserId: c.roblox_user_id || undefined,
+          whatsappNumber: c.whatsapp_number || undefined,
+          totalOrders: Number(c.total_orders || 0),
+          totalSpent: 'Rp ' + Number(c.total_spent_raw || 0).toLocaleString('id-ID'),
+          status: c.status,
+          blacklistReason: c.blacklist_reason || undefined,
+        }));
+        setCustomers(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to load customers:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchCustomers();
+  };
+
+  const handleBlacklistAction = async (customer: AdminCustomer) => {
+    if (confirm(`Masukkan username ${customer.username} ke dalam blacklist?`)) {
+      try {
+        const res = await fetch('/api/blacklists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roblox_username: customer.username,
+            phone: customer.whatsappNumber,
+            roblox_user_id: customer.robloxUserId,
+            reason: 'Indikasi penipuan atau penyalahgunaan',
+          }),
+        });
+        if (res.ok) {
+          fetchCustomers();
+        }
+      } catch (err) {
+        console.error('Failed to blacklist customer:', err);
+      }
+    }
+  };
 
   const activeCustomers = useMemo(() => {
     let list = customers.filter((c) => c.status === 'aktif');
@@ -30,11 +89,6 @@ export default function CustomerListView({
     return list;
   }, [customers, searchQuery]);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
   return (
     <div className="space-y-5 max-w-7xl mx-auto animate-in fade-in zoom-in-98 duration-200">
       {/* Page Header */}
@@ -42,17 +96,17 @@ export default function CustomerListView({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200">
-              Database Akun
+              Live Neon DB
             </span>
             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Zerly Gamers
+              <Sparkles className="w-3.5 h-3.5" /> Zerly Real Customers
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">
             Daftar Pelanggan
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium">
-            Kelola seluruh data akun pelanggan aktif dan riwayat belanja Robux
+            Data pembeli yang otomatis diagregasi langsung dari transaksi real database
           </p>
         </div>
 
@@ -89,17 +143,22 @@ export default function CustomerListView({
 
         {/* List of Customers */}
         <div className="space-y-3">
-          {activeCustomers.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16 text-rose-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-semibold">Memuat database pelanggan...</span>
+            </div>
+          ) : activeCustomers.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <Users className="w-12 h-12 mx-auto mb-3 text-rose-300" />
               <p className="text-sm font-semibold text-gray-600">
-                Tidak ada pelanggan aktif ditemukan.
+                Belum ada data pelanggan di database.
               </p>
             </div>
           ) : (
             activeCustomers.map((customer) => (
               <div
-                key={customer.id}
+                key={customer.username}
                 className="bg-white border border-rose-100/90 hover:border-rose-300/90 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
               >
                 {/* Left: Username, Roblox ID & WhatsApp info */}
@@ -143,7 +202,7 @@ export default function CustomerListView({
                   </div>
 
                   <button
-                    onClick={() => onBlacklistCustomer(customer.id)}
+                    onClick={() => handleBlacklistAction(customer)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                   >
                     <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />

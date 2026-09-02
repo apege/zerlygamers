@@ -1,23 +1,16 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, ShieldAlert, Plus, X, ShieldCheck, Sparkles } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Search, RefreshCw, ShieldAlert, Plus, X, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 import { AdminCustomer } from '@/data/adminDummyData';
 
-interface BlacklistViewProps {
-  customers: AdminCustomer[];
-  onAddBlacklist: (newCustomer: AdminCustomer) => void;
-  onUnblockCustomer: (id: string) => void;
-}
-
-export default function BlacklistView({
-  customers,
-  onAddBlacklist,
-  onUnblockCustomer,
-}: BlacklistViewProps) {
+export default function BlacklistView() {
+  const [blacklists, setBlacklists] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [usernameInput, setUsernameInput] = useState('');
@@ -25,23 +18,31 @@ export default function BlacklistView({
   const [idInput, setIdInput] = useState('');
   const [reasonInput, setReasonInput] = useState('Indikasi penipuan atau penyalahgunaan');
 
-  const blacklistedCustomers = useMemo(() => {
-    let list = customers.filter((c) => c.status === 'blacklist');
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.username.toLowerCase().includes(q) ||
-          (c.robloxUserId && c.robloxUserId.includes(q)) ||
-          (c.whatsappNumber && c.whatsappNumber.includes(q))
-      );
+  const fetchBlacklists = useCallback(async () => {
+    try {
+      const res = await fetch('/api/blacklists', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setBlacklists(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load blacklists:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-    return list;
-  }, [customers, searchQuery]);
+  }, []);
+
+  useEffect(() => {
+    fetchBlacklists();
+  }, [fetchBlacklists]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
+    fetchBlacklists();
   };
 
   const handleOpenAddModal = () => {
@@ -52,31 +53,65 @@ export default function BlacklistView({
     setShowModal(true);
   };
 
-  const handleSubmitBlacklist = (e: React.FormEvent) => {
+  const handleSubmitBlacklist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim()) {
       alert('Harap masukkan Username Roblox!');
       return;
     }
 
-    const cleanUsername = usernameInput.startsWith('@')
-      ? usernameInput
-      : `@${usernameInput.trim()}`;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/blacklists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roblox_username: usernameInput.trim(),
+          phone: waInput.trim() || undefined,
+          roblox_user_id: idInput.trim() || undefined,
+          reason: reasonInput.trim() || 'Indikasi penipuan atau penyalahgunaan',
+        }),
+      });
 
-    const newBlacklistCustomer: AdminCustomer = {
-      id: 'c-' + Date.now(),
-      username: cleanUsername,
-      whatsappNumber: waInput.trim() || undefined,
-      robloxUserId: idInput.trim() || undefined,
-      totalOrders: 0,
-      totalSpent: 'Rp 0',
-      status: 'blacklist',
-      blacklistReason: reasonInput.trim() || 'Indikasi penipuan atau penyalahgunaan',
-    };
-
-    onAddBlacklist(newBlacklistCustomer);
-    setShowModal(false);
+      if (res.ok) {
+        fetchBlacklists();
+        setShowModal(false);
+      }
+    } catch (err) {
+      console.error('Failed to add blacklist:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleUnblockCustomer = async (id: number | string) => {
+    if (confirm('Buka blokir akun ini dari blacklist?')) {
+      try {
+        const res = await fetch(`/api/blacklists?id=${id}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setBlacklists((prev) => prev.filter((b) => b.id !== id));
+        }
+      } catch (err) {
+        console.error('Failed to unblock:', err);
+      }
+    }
+  };
+
+  const filteredBlacklists = useMemo(() => {
+    let list = blacklists;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.roblox_username?.toLowerCase().includes(q) ||
+          (c.roblox_user_id && c.roblox_user_id.includes(q)) ||
+          (c.phone && c.phone.includes(q))
+      );
+    }
+    return list;
+  }, [blacklists, searchQuery]);
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto animate-in fade-in zoom-in-98 duration-200">
@@ -85,17 +120,17 @@ export default function BlacklistView({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
-              Proteksi Toko
+              Live Database Neon
             </span>
             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Zerly Security
+              <Sparkles className="w-3.5 h-3.5" /> Zerly Real Blacklists
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">
             Daftar Blacklist
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium">
-            Daftar akun yang diblokir dari transaksi toko untuk keamanan sistem
+            Daftar akun yang diblokir dari checkout toko langsung di database real
           </p>
         </div>
 
@@ -136,21 +171,26 @@ export default function BlacklistView({
           </div>
 
           <span className="text-xs font-bold text-gray-400 text-right">
-            {blacklistedCustomers.length} akun terdaftar dalam blacklist
+            {filteredBlacklists.length} akun terdaftar dalam blacklist database
           </span>
         </div>
 
         {/* List of Blacklisted Users */}
         <div className="space-y-3">
-          {blacklistedCustomers.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16 text-rose-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-semibold">Memuat data blacklist...</span>
+            </div>
+          ) : filteredBlacklists.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-emerald-400" />
               <p className="text-sm font-semibold text-gray-600">
-                Tidak ada akun yang di-blacklist saat ini.
+                Tidak ada akun yang di-blacklist saat ini di database.
               </p>
             </div>
           ) : (
-            blacklistedCustomers.map((customer) => (
+            filteredBlacklists.map((customer) => (
               <div
                 key={customer.id}
                 className="bg-white border border-red-100 hover:border-red-300 rounded-2xl p-4 sm:p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
@@ -159,7 +199,7 @@ export default function BlacklistView({
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-black text-sm sm:text-base text-red-600 tracking-tight">
-                      {customer.username}
+                      {customer.roblox_username}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
                       BLACKLISTED
@@ -167,38 +207,33 @@ export default function BlacklistView({
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap font-medium">
-                    {customer.whatsappNumber ? (
-                      <span>WA: <strong className="text-gray-800">{customer.whatsappNumber}</strong></span>
+                    {customer.phone ? (
+                      <span>WA: <strong className="text-gray-800">{customer.phone}</strong></span>
                     ) : (
                       <span className="text-gray-400 italic">WA: -</span>
                     )}
 
                     <span>•</span>
 
-                    {customer.robloxUserId ? (
-                      <span>ID: <strong className="font-mono text-gray-800">{customer.robloxUserId}</strong></span>
+                    {customer.roblox_user_id ? (
+                      <span>ID: <strong className="font-mono text-gray-800">{customer.roblox_user_id}</strong></span>
                     ) : (
                       <span className="text-gray-400 italic">ID Roblox: -</span>
                     )}
                   </div>
 
-                  {customer.blacklistReason && (
+                  {customer.reason && (
                     <p className="text-xs text-red-500 font-semibold mt-1">
-                      Alasan: {customer.blacklistReason}
+                      Alasan: {customer.reason}
                     </p>
                   )}
                 </div>
 
-                {/* Right: Stats & Unblock Action */}
-                <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-rose-50">
-                  <div className="text-left sm:text-right text-xs">
-                    <span className="text-gray-400 font-medium block">Total {customer.totalOrders}x order</span>
-                    <span className="font-bold text-gray-700">{customer.totalSpent}</span>
-                  </div>
-
+                {/* Right: Unblock Action */}
+                <div className="flex items-center justify-end gap-5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-rose-50">
                   <button
-                    onClick={() => onUnblockCustomer(customer.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    onClick={() => handleUnblockCustomer(customer.id)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-2xs"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Buka Blokir</span>
@@ -301,9 +336,11 @@ export default function BlacklistView({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:opacity-95 text-white font-bold shadow-md shadow-red-500/20 transition-all active:scale-95 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:opacity-95 text-white font-bold shadow-md shadow-red-500/20 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
                 >
-                  Blokir Akun
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Blokir Akun</span>
                 </button>
               </div>
             </form>
