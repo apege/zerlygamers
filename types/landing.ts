@@ -19,6 +19,7 @@ export interface Testimonial {
   avatar: string;
   text: string;
   stars: number;
+  adminReply?: any;
 }
 
 export interface PaymentMethod {
