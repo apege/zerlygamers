@@ -55,10 +55,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[500px] lg:w-[650px] h-[300px] sm:h-[380px] lg:h-[420px] bg-gradient-to-tr from-pink-300/35 via-rose-200/40 to-pink-100/20 rounded-full blur-3xl pointer-events-none z-0" />
 
       {/* Floating Sparkles & Hearts */}
-      <div className="hidden sm:block absolute top-2 left-[28%] text-pink-400 text-2xl animate-float-slow select-none z-10">💕</div>
-      <div className="hidden sm:block absolute top-6 right-[26%] text-pink-400 text-xl animate-sparkle select-none z-10">✨</div>
-      <div className="hidden sm:block absolute bottom-6 left-[25%] text-pink-400 text-xl animate-float-slow select-none z-10">💖</div>
-      <div className="hidden sm:block absolute top-[28%] right-[20%] text-pink-300 text-lg animate-sparkle select-none z-10">⭐</div>
+      <div aria-hidden="true" className="hidden sm:block absolute top-2 left-[28%] text-pink-400 text-2xl animate-float-slow select-none z-10">💕</div>
+      <div aria-hidden="true" className="hidden sm:block absolute top-6 right-[26%] text-pink-400 text-xl animate-sparkle select-none z-10">✨</div>
+      <div aria-hidden="true" className="hidden sm:block absolute bottom-6 left-[25%] text-pink-400 text-xl animate-float-slow select-none z-10">💖</div>
+      <div aria-hidden="true" className="hidden sm:block absolute top-[28%] right-[20%] text-pink-300 text-lg animate-sparkle select-none z-10">⭐</div>
 
       <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center relative z-10">
         
@@ -66,13 +66,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="lg:col-span-4 flex flex-col items-start gap-2.5 text-left z-20 order-1">
           {/* Badge Top Headline (Promo vs #1 Top Up) */}
           {isPromoActive ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-100 via-rose-100 to-amber-100 border border-pink-300/90 text-[#FF2E88] text-[10.5px] sm:text-[11px] font-black tracking-wider uppercase shadow-xs">
-              <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-100 via-rose-100 to-amber-100 border border-pink-300/90 text-[#D81467] text-[10.5px] sm:text-[11px] font-black tracking-wider uppercase shadow-xs">
+              <Flame aria-hidden="true" className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
               <span>PROMO SPESIAL HARI INI</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-100/95 border border-pink-300/90 text-[#FF2E88] text-[10.5px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-[#FF2E88]" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-100/95 border border-pink-300/90 text-[#D81467] text-[10.5px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-xs">
+              <Sparkles aria-hidden="true" className="w-3.5 h-3.5 text-[#D81467]" />
               <span>#1 TOP UP GAME TERPERCAYA</span>
             </div>
           )}
@@ -92,7 +92,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="w-full max-w-sm p-3 rounded-2xl bg-gradient-to-r from-pink-50/95 via-rose-50/85 to-amber-50/70 border border-pink-200/90 shadow-xs space-y-1 animate-in fade-in">
               <div className="flex items-start gap-1.5">
                 <div className="w-5 h-5 rounded-md bg-rose-100 text-[#FF2E88] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <Zap className="w-3 h-3 fill-[#FF2E88]" />
+                  <Zap aria-hidden="true" className="w-3 h-3 fill-[#FF2E88]" />
                 </div>
                 <p className="text-[11.5px] sm:text-xs text-gray-800 font-medium leading-snug">
                   Dapatkan promo spesial{" "}
@@ -100,11 +100,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     {promoData.robuxAmount.toLocaleString("id-ID")} Robux
                   </strong>{" "}
                   cuma{" "}
-                  <span className="font-black text-[#FF2E88] text-[13px]">
+                  <span className="font-black text-[#D81467] text-[13px]">
                     Rp {promoData.discountPrice.toLocaleString("id-ID")}
                   </span>{" "}
                   {promoData.originalPrice && promoData.originalPrice > promoData.discountPrice && (
-                    <span className="line-through text-gray-400 font-bold text-[10px] ml-0.5">
+                    <span className="line-through text-gray-600 font-bold text-[10px] ml-0.5">
                       Rp {promoData.originalPrice.toLocaleString("id-ID")}
                     </span>
                   )}
@@ -112,7 +112,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   {promoData.endDateFormatted && (
                     <span>
                       Berlaku s/d{" "}
-                      <strong className="font-black text-amber-700">
+                      <strong className="font-black text-amber-800">
                         {promoData.endDateFormatted}
                       </strong>
                     </span>
@@ -121,15 +121,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </div>
 
               {promoData.tagline && (
-                <p className="text-[10px] text-gray-500 font-medium italic pl-6.5 truncate">
+                <p className="text-[10px] text-gray-600 font-medium italic pl-6.5 truncate">
                   “{promoData.tagline}”
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-xs sm:text-[13px] text-gray-600 font-medium max-w-sm leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-gray-700 font-medium max-w-sm leading-relaxed">
               Top up game favoritmu dengan harga terbaik, proses instan, dan 100% aman di{" "}
-              <span className="font-bold text-[#FF2E88]">Zerly Gamers</span>!
+              <span className="font-bold text-[#D81467]">Zerly Gamers</span>!
             </p>
           )}
 
@@ -145,30 +145,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#FF2E88] via-[#FF3B93] to-[#FF55A3] hover:from-[#E61B75] hover:to-[#FF3B93] text-white font-extrabold text-xs px-5 py-2.5 sm:py-3 rounded-full shadow-lg shadow-pink-500/35 hover:shadow-pink-500/50 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
             >
               <span>{isPromoActive ? "AMBIL PROMO" : "TOP UP SEKARANG"}</span>
-              <ChevronRight className="w-4 h-4 stroke-[3]" />
+              <ChevronRight aria-hidden="true" className="w-4 h-4 stroke-[3]" />
             </a>
 
             <button
+              type="button"
               onClick={onOpenAllPackages}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-white/95 hover:bg-pink-50/80 border-2 border-pink-300 text-[#FF2E88] font-extrabold text-xs px-4 py-2.5 rounded-full shadow-xs hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-white/95 hover:bg-pink-50/80 border-2 border-pink-300 text-[#D81467] font-extrabold text-xs px-4 py-2.5 rounded-full shadow-xs hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
             >
               <span>LIHAT SEMUA HARGA</span>
-              <ChevronRight className="w-4 h-4 stroke-[3]" />
+              <ChevronRight aria-hidden="true" className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
 
           {/* Status Indicators */}
-          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[10.5px] sm:text-[11px] font-bold text-gray-600">
+          <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[10.5px] sm:text-[11px] font-bold text-gray-700">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF2E88] animate-ping" />
+              <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-[#FF2E88] animate-ping" />
               <span>Online 24 Jam</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#00C2FF]" />
+              <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-[#0088CC]" />
               <span>Proses Instan</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF2E88]" />
+              <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-[#FF2E88]" />
               <span>Legal &amp; Aman</span>
             </div>
           </div>
@@ -190,13 +191,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   className="bg-white/95 backdrop-blur-sm border-2 border-pink-200/90 rounded-2xl p-2.5 px-3.5 flex items-center gap-2.5 shadow-2xs shrink-0"
                 >
                   <div className="w-7 h-7 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88] shrink-0">
-                    <Icon className="w-4 h-4" />
+                    <Icon aria-hidden="true" className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col text-left">
-                    <h4 className="text-[11px] font-black uppercase text-gray-800 tracking-wide whitespace-nowrap">
+                    <span className="text-[11px] font-black uppercase text-gray-800 tracking-wide whitespace-nowrap">
                       {feat.title}
-                    </h4>
-                    <p className="text-[9.5px] text-gray-500 font-medium leading-tight whitespace-nowrap">
+                    </span>
+                    <p className="text-[9.5px] text-gray-600 font-medium leading-tight whitespace-nowrap">
                       {feat.desc}
                     </p>
                   </div>
@@ -213,13 +214,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   className="bg-white/95 backdrop-blur-sm border-2 border-pink-200/90 rounded-2xl p-2.5 px-3.5 flex items-center gap-2.5 shadow-2xs shrink-0"
                 >
                   <div className="w-7 h-7 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88] shrink-0">
-                    <Icon className="w-4 h-4" />
+                    <Icon aria-hidden="true" className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col text-left">
-                    <h4 className="text-[11px] font-black uppercase text-gray-800 tracking-wide whitespace-nowrap">
+                    <span className="text-[11px] font-black uppercase text-gray-800 tracking-wide whitespace-nowrap">
                       {feat.title}
-                    </h4>
-                    <p className="text-[9.5px] text-gray-500 font-medium leading-tight whitespace-nowrap">
+                    </span>
+                    <p className="text-[9.5px] text-gray-600 font-medium leading-tight whitespace-nowrap">
                       {feat.desc}
                     </p>
                   </div>
@@ -239,13 +240,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 className="bg-white/95 backdrop-blur-sm border-2 border-pink-200/90 rounded-2xl p-3 flex items-center gap-3 shadow-xs hover:shadow-md hover:border-pink-300 transition-all group"
               >
                 <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88] group-hover:scale-110 group-hover:bg-[#FF2E88] group-hover:text-white transition-all shrink-0">
-                  <Icon className="w-4.5 h-4.5" />
+                  <Icon aria-hidden="true" className="w-4.5 h-4.5" />
                 </div>
                 <div className="flex flex-col text-left min-w-0">
-                  <h4 className="text-xs font-black uppercase text-gray-800 tracking-wide truncate">
+                  <span className="text-xs font-black uppercase text-gray-800 tracking-wide truncate">
                     {feat.title}
-                  </h4>
-                  <p className="text-[10px] text-gray-500 font-medium leading-tight truncate">
+                  </span>
+                  <p className="text-[10px] text-gray-600 font-medium leading-tight truncate">
                     {feat.desc}
                   </p>
                 </div>
@@ -265,6 +266,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 alt="Zerly Gamers Mascot Character"
                 width={540}
                 height={540}
+                sizes="(max-width: 640px) 310px, (max-width: 1024px) 380px, 540px"
                 priority
                 className="object-contain max-h-[310px] sm:max-h-[380px] lg:max-h-[480px] w-auto drop-shadow-2xl"
               />
@@ -277,6 +279,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 alt="Zerly Gamers Shield Emblem"
                 width={280}
                 height={110}
+                sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 280px"
                 priority
                 className="object-contain drop-shadow-[0_12px_24px_rgba(255,42,133,0.4)] w-[150px] sm:w-[200px] lg:w-[280px] h-auto"
               />

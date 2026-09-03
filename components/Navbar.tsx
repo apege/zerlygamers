@@ -30,23 +30,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (initialWaNumber) setWhatsappNumber(initialWaNumber);
   }, [initialStoreName, initialLogoPath, initialWaNumber]);
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.store_name) setStoreName(json.data.store_name);
-          if (json.data.logo_image_path) setLogoPath(json.data.logo_image_path);
-          if (json.data.whatsapp_number) setWhatsappNumber(json.data.whatsapp_number);
-        }
-      } catch (err) {
-        console.error("Failed to fetch store settings in Navbar:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
-
   const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
   const waContactLink = `https://wa.me/${cleanWa}?text=Halo%20Admin%20${encodeURIComponent(storeName)}%2C%20saya%20ingin%20bertanya%20seputar%20top%20up%20Robux.`;
 
@@ -61,12 +44,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* 1. Left: Brand Logo & Dynamic Store Name from API */}
         <div className="flex items-center">
-          <a href="#" className="flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-95 group">
+          <a href="#" aria-label={`${storeName} Home`} className="flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-95 group">
             <Image
               src={logoPath}
               alt={storeName}
               width={160}
               height={55}
+              sizes="(max-width: 640px) 130px, 160px"
               priority
               className="object-contain drop-shadow-xs h-9 sm:h-11 w-auto group-hover:scale-105 transition-transform"
             />
@@ -75,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-xs sm:text-sm lg:text-base font-black text-[#FF1D7E] leading-none tracking-wider uppercase">
                 {mainWord}
               </span>
-              <span className="text-[8.5px] sm:text-[9.5px] font-black text-gray-500 tracking-widest leading-none mt-0.5 uppercase">
+              <span className="text-[8.5px] sm:text-[9.5px] font-black text-gray-600 tracking-widest leading-none mt-0.5 uppercase">
                 {subWord}
               </span>
             </div>
@@ -83,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* 2. Desktop Navigation Menu */}
-        <nav className="hidden md:flex items-center h-full gap-2 lg:gap-5">
+        <nav aria-label="Navigasi Utama" className="hidden md:flex items-center h-full gap-2 lg:gap-5">
           
           {/* BERANDA (Slanted Pink Tab) */}
           <a
@@ -93,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               clipPath: "polygon(0 0, 100% 0, 85% 100%, 0 100%)",
             }}
           >
-            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="w-4 h-4 fill-white" viewBox="0 0 24 24">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </svg>
             <span className="pr-1">BERANDA</span>
@@ -105,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-1.5 text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2"
           >
             <svg
+              aria-hidden="true"
               className="w-4 h-4 text-gray-900 stroke-[2.5]"
               viewBox="0 0 24 24"
               fill="none"
@@ -120,6 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* CARA ORDER */}
           <button
+            type="button"
             onClick={onOpenCaraOrder}
             className="text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2 cursor-pointer"
           >
@@ -136,6 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* FAQ */}
           <button
+            type="button"
             onClick={onOpenFaq}
             className="text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2 cursor-pointer"
           >
@@ -149,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             rel="noopener noreferrer"
             className="text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2 flex items-center gap-1"
           >
-            <PhoneCall className="w-3.5 h-3.5 text-emerald-500" />
+            <PhoneCall aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600" />
             <span>KONTAK</span>
           </a>
         </nav>
@@ -159,16 +146,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop Halo Gamer */}
           <div className="hidden xl:flex items-center">
             <button
+              type="button"
               onClick={onOpenCaraOrder}
+              aria-label="Panduan Halo Gamer"
               className="bg-pink-50/50 hover:bg-pink-100/70 border-2 border-pink-300 rounded-xl px-3.5 py-1.5 flex items-center gap-2 shadow-2xs transition-all cursor-pointer group"
             >
-              <div className="w-5 h-5 rounded-full bg-[#FF2E88] text-white flex items-center justify-center text-xs">
+              <div aria-hidden="true" className="w-5 h-5 rounded-full bg-[#FF2E88] text-white flex items-center justify-center text-xs">
                 <User className="w-3 h-3 fill-current" />
               </div>
-              <span className="text-[11.5px] font-black text-[#FF2E88] tracking-wider uppercase">
+              <span className="text-[11.5px] font-black text-[#D81467] tracking-wider uppercase">
                 HALO, GAMER!
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#FF2E88] stroke-[3] group-hover:translate-y-0.5 transition-transform" />
+              <ChevronDown aria-hidden="true" className="w-3.5 h-3.5 text-[#D81467] stroke-[3] group-hover:translate-y-0.5 transition-transform" />
             </button>
           </div>
 
@@ -178,17 +167,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               href="#topup"
               className="bg-gradient-to-r from-[#FF3B8D] to-[#FF247D] text-white font-extrabold text-[11px] px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1 uppercase tracking-wide active:scale-95 transition-transform"
             >
-              <Gamepad2 className="w-3.5 h-3.5" />
+              <Gamepad2 aria-hidden="true" className="w-3.5 h-3.5" />
               <span>TOP UP</span>
             </a>
 
             {/* Mobile Hamburger Button */}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle Navigation Menu"
+              aria-label="Buka menu navigasi"
+              aria-expanded={mobileMenuOpen}
               className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-300 text-[#FF2E88] flex items-center justify-center shadow-xs cursor-pointer hover:bg-pink-100 active:scale-95 transition-all"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X aria-hidden="true" className="w-5 h-5" /> : <Menu aria-hidden="true" className="w-5 h-5" />}
             </button>
           </div>
         </div>
