@@ -10,13 +10,15 @@ import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { Testimonials } from "@/components/Testimonials";
 import { PaymentFooter } from "@/components/PaymentFooter";
 
-// Modals
-import { OrderModal } from "@/components/modals/OrderModal";
-import { AllPackagesModal } from "@/components/modals/AllPackagesModal";
-import { CaraOrderModal } from "@/components/modals/CaraOrderModal";
-import { FaqModal } from "@/components/modals/FaqModal";
-import CustomerReviewModal from "@/components/modals/CustomerReviewModal";
-import { WhatsAppSuccessModal } from "@/components/modals/WhatsAppSuccessModal";
+import dynamic from "next/dynamic";
+
+// Modals dynamically imported to reduce initial bundle and TBT
+const OrderModal = dynamic(() => import("@/components/modals/OrderModal").then((m) => m.OrderModal), { ssr: false });
+const AllPackagesModal = dynamic(() => import("@/components/modals/AllPackagesModal").then((m) => m.AllPackagesModal), { ssr: false });
+const CaraOrderModal = dynamic(() => import("@/components/modals/CaraOrderModal").then((m) => m.CaraOrderModal), { ssr: false });
+const FaqModal = dynamic(() => import("@/components/modals/FaqModal").then((m) => m.FaqModal), { ssr: false });
+const CustomerReviewModal = dynamic(() => import("@/components/modals/CustomerReviewModal"), { ssr: false });
+const WhatsAppSuccessModal = dynamic(() => import("@/components/modals/WhatsAppSuccessModal").then((m) => m.WhatsAppSuccessModal), { ssr: false });
 
 // Default Initial Data & Types
 import {
@@ -353,7 +355,7 @@ export default function ZerlyGamersPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-start text-[#333] relative overflow-x-hidden">
       {/* Background Floating Cute Gamer Elements */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-12 left-10 text-pink-300/40 text-4xl animate-float-slow">💖</div>
         <div className="absolute top-48 right-16 text-pink-300/40 text-3xl animate-sparkle">✨</div>
         <div className="absolute top-[40%] left-6 text-pink-300/40 text-2xl animate-float-slow">⭐</div>
@@ -362,8 +364,8 @@ export default function ZerlyGamersPage() {
         <div className="absolute top-1/3 -right-20 w-96 h-96 bg-rose-200/35 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Main Content Container */}
-      <div className="w-full max-w-[1240px] px-3 sm:px-6 py-4 flex flex-col gap-4 z-10">
+      {/* Main Content Container Landmark */}
+      <main id="main-content" className="w-full max-w-[1240px] px-3 sm:px-6 py-4 flex flex-col gap-4 z-10">
         {/* Section 1: Navigation Bar */}
         <Navbar
           onOpenCaraOrder={() => setShowCaraOrderModal(true)}
@@ -386,7 +388,7 @@ export default function ZerlyGamersPage() {
         />
 
         {/* Section 3: Main Product & Order Grid */}
-        <section id="topup" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
+        <section id="topup" aria-label="Katalog Paket dan Form Pemesanan Robux" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
           <TopUpRobux
             packages={packages}
             selectedPackage={selectedPackage}
@@ -413,7 +415,7 @@ export default function ZerlyGamersPage() {
         </section>
 
         {/* Section 4: Why Choose Us & Testimonials (Compact, items-start to prevent vertical stretching) */}
-        <section className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
+        <section aria-label="Keunggulan dan Testimoni Pelanggan" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
           <WhyChooseUs />
           <Testimonials
             testimonials={testimonials}
@@ -431,41 +433,49 @@ export default function ZerlyGamersPage() {
             storeName={storeName}
           />
         </div>
-      </div>
+      </main>
 
       {/* Interactive QRIS Checkout Modal */}
-      <OrderModal
-        isOpen={showOrderModal}
-        onClose={() => {
-          setShowOrderModal(false);
-          setOrderSuccess(false);
-        }}
-        selectedPackage={selectedPackage}
-        userId={userId}
-        robloxUser={robloxUser}
-        orderSuccess={orderSuccess}
-        qrisImagePath={qrisImagePath}
-        storeName={storeName}
-        onConfirmOrder={handleConfirmOrder}
-      />
+      {showOrderModal && (
+        <OrderModal
+          isOpen={showOrderModal}
+          onClose={() => {
+            setShowOrderModal(false);
+            setOrderSuccess(false);
+          }}
+          selectedPackage={selectedPackage}
+          userId={userId}
+          robloxUser={robloxUser}
+          orderSuccess={orderSuccess}
+          qrisImagePath={qrisImagePath}
+          storeName={storeName}
+          onConfirmOrder={handleConfirmOrder}
+        />
+      )}
 
-      <AllPackagesModal
-        isOpen={showAllPackagesModal}
-        onClose={() => setShowAllPackagesModal(false)}
-        allPackages={allPackages}
-        selectedPackage={selectedPackage}
-        onSelectPackage={handleSelectPackage}
-      />
+      {showAllPackagesModal && (
+        <AllPackagesModal
+          isOpen={showAllPackagesModal}
+          onClose={() => setShowAllPackagesModal(false)}
+          allPackages={allPackages}
+          selectedPackage={selectedPackage}
+          onSelectPackage={handleSelectPackage}
+        />
+      )}
 
-      <CaraOrderModal
-        isOpen={showCaraOrderModal}
-        onClose={() => setShowCaraOrderModal(false)}
-      />
+      {showCaraOrderModal && (
+        <CaraOrderModal
+          isOpen={showCaraOrderModal}
+          onClose={() => setShowCaraOrderModal(false)}
+        />
+      )}
 
-      <FaqModal
-        isOpen={showFaqModal}
-        onClose={() => setShowFaqModal(false)}
-      />
+      {showFaqModal && (
+        <FaqModal
+          isOpen={showFaqModal}
+          onClose={() => setShowFaqModal(false)}
+        />
+      )}
 
       {/* Review Token Query Listener */}
       <Suspense fallback={null}>
@@ -485,16 +495,18 @@ export default function ZerlyGamersPage() {
       )}
 
       {/* Modal Sukses Order via WhatsApp */}
-      <WhatsAppSuccessModal
-        isOpen={showWhatsAppModal}
-        onClose={() => setShowWhatsAppModal(false)}
-        selectedPackage={selectedPackage}
-        userId={userId}
-        robloxUser={robloxUser}
-        invoiceNumber={waInvoiceNumber}
-        whatsappLink={waDirectLink}
-        storeName={storeName}
-      />
+      {showWhatsAppModal && (
+        <WhatsAppSuccessModal
+          isOpen={showWhatsAppModal}
+          onClose={() => setShowWhatsAppModal(false)}
+          selectedPackage={selectedPackage}
+          userId={userId}
+          robloxUser={robloxUser}
+          invoiceNumber={waInvoiceNumber}
+          whatsappLink={waDirectLink}
+          storeName={storeName}
+        />
+      )}
     </div>
   );
 }
