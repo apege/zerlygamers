@@ -1,5 +1,6 @@
+"use client";
+
 import React from "react";
-import Image from "next/image";
 import { PaymentMethod } from "@/types/landing";
 
 interface PaymentFooterProps {
@@ -16,7 +17,7 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
       <footer className="w-full bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
         {/* Left: METODE PEMBAYARAN with Large Direct Official Logos (No tiny cards) */}
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="text-xs font-black text-[#BE185D] uppercase tracking-wider shrink-0 mr-1">
+          <span className="text-xs font-black text-[#FF1D7E] uppercase tracking-wider shrink-0 mr-1">
             METODE PEMBAYARAN
           </span>
 
@@ -28,13 +29,10 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
                 title={method.name}
               >
                 {method.logo ? (
-                  <Image
+                  <img
                     src={method.logo}
                     alt={`Metode pembayaran ${method.name}`}
-                    width={70}
-                    height={26}
-                    loading="lazy"
-                    className="h-6 sm:h-7 w-auto max-w-[78px] object-contain drop-shadow-2xs"
+                    className="h-6 sm:h-7 max-w-[78px] object-contain drop-shadow-2xs"
                   />
                 ) : (
                   <span className="text-xs font-black text-gray-800">{method.name}</span>

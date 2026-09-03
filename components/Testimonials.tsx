@@ -58,7 +58,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between text-left">
-        <h3 className="text-xs sm:text-sm font-black uppercase tracking-wide text-[#BE185D]">
+        <h3 className="text-xs sm:text-sm font-black uppercase tracking-wide text-[#FF1D7E]">
           APA KATA GAMERS?
         </h3>
       </div>
@@ -67,19 +67,17 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
       <div className="flex items-center gap-2 bg-pink-50/70 border border-pink-200 rounded-2xl p-3 sm:p-3.5 relative z-10">
         {/* Prev Button */}
         <button
-          type="button"
           onClick={onPrev}
-          aria-label="Ulasan Sebelumnya"
-          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-[#BE185D] flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
+          aria-label="Previous Testimonial"
+          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-pink-600 flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
         >
-          <ChevronLeft aria-hidden="true" className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
 
         {/* Review Content */}
         <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
           {/* Initial Letter Avatar */}
           <div
-            aria-hidden="true"
             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr ${gradientClass} text-white font-black text-base sm:text-lg flex items-center justify-center border-2 border-white shadow-sm shrink-0 select-none mt-0.5`}
           >
             {initial}
@@ -92,26 +90,26 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
               <span className="text-xs font-black text-gray-800 truncate">
                 {current.username}
               </span>
-              <div aria-label={`Rating ${current.stars} dari 5 bintang`} className="flex items-center text-amber-400 shrink-0">
+              <div className="flex items-center text-amber-400 shrink-0">
                 {[...Array(current.stars)].map((_, i) => (
-                  <Star key={i} aria-hidden="true" className="w-3 h-3 fill-amber-400" />
+                  <Star key={i} className="w-3 h-3 fill-amber-400" />
                 ))}
               </div>
             </div>
 
             {/* Customer Review Text */}
-            <p className="text-[11px] sm:text-[11.5px] text-gray-700 font-medium leading-snug line-clamp-2 mt-0.5">
+            <p className="text-[11px] sm:text-[11.5px] text-gray-600 font-medium leading-snug line-clamp-2 mt-0.5">
               {current.text}
             </p>
 
             {/* Admin Reply (Compact, Clean & Layout-Safe) */}
             {adminReplyText && (
               <div className="mt-1.5 pt-1.5 border-t border-pink-200/60 flex items-start gap-1 text-[10.5px]">
-                <div className="flex items-center gap-1 text-[#BE185D] font-black shrink-0 text-[10px] bg-pink-100/90 border border-pink-200 px-1.5 py-0.2 rounded-md">
-                  <ShieldCheck aria-hidden="true" className="w-3 h-3 text-[#BE185D]" />
+                <div className="flex items-center gap-1 text-[#FF1D7E] font-black shrink-0 text-[10px] bg-pink-100/90 border border-pink-200 px-1.5 py-0.2 rounded-md">
+                  <ShieldCheck className="w-3 h-3 text-[#FF2E88]" />
                   <span>Admin:</span>
                 </div>
-                <p className="text-gray-800 italic font-medium leading-tight truncate">
+                <p className="text-gray-700 italic font-medium leading-tight truncate">
                   &ldquo;{adminReplyText}&rdquo;
                 </p>
               </div>
@@ -121,17 +119,16 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
 
         {/* Next Button */}
         <button
-          type="button"
           onClick={onNext}
-          aria-label="Ulasan Berikutnya"
-          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-[#BE185D] flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
+          aria-label="Next Testimonial"
+          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-pink-600 flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
         >
-          <ChevronRight aria-hidden="true" className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Subtle indicator dots */}
-      <div aria-hidden="true" className="flex items-center justify-center gap-1.5 pt-0.5">
+      <div className="flex items-center justify-center gap-1.5 pt-0.5">
         {testimonials.map((_, idx) => (
           <div
             key={idx}
