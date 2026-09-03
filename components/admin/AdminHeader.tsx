@@ -27,6 +27,7 @@ interface AdminHeaderProps {
   orders?: AdminOrder[];
   onSelectOrder?: (order: AdminOrder) => void;
   onSelectTab?: (tab: string) => void;
+  onLogout?: () => void;
 }
 
 export default function AdminHeader({
@@ -36,6 +37,7 @@ export default function AdminHeader({
   orders = [],
   onSelectOrder,
   onSelectTab,
+  onLogout,
 }: AdminHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -272,13 +274,14 @@ export default function AdminHeader({
         <div className="h-7 w-px bg-rose-200/90" />
 
         {/* Logout Pill Button */}
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={onLogout}
           className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full border border-rose-300/80 bg-rose-50/50 hover:bg-rose-100/80 text-rose-600 text-xs font-black shadow-2xs transition-all active:scale-95 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5 text-rose-600" />
           <span>Logout</span>
-        </Link>
+        </button>
       </div>
     </header>
   );

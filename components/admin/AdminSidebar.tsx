@@ -21,11 +21,13 @@ import {
   MessageCircleHeart,
   X,
   Tag,
+  LogOut,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
+  onLogout?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   orderCounts?: {
@@ -39,9 +41,10 @@ interface AdminSidebarProps {
 export default function AdminSidebar({
   currentTab = 'dashboard',
   onSelectTab,
+  onLogout,
   isMobileOpen = false,
   onCloseMobile,
-  orderCounts,
+  orderCounts = { masuk: 0, diproses: 0, selesai: 0, dibatalkan: 0 },
 }: AdminSidebarProps) {
   const navSections = [
     {
@@ -201,8 +204,19 @@ export default function AdminSidebar({
           ))}
         </div>
 
-        {/* Bottom Fixed Footer: Help Box */}
-        <div className="p-4 pt-2 shrink-0 border-t border-rose-100/60 bg-white/95">
+        {/* Bottom Fixed Footer: Help Box & Logout */}
+        <div className="p-4 pt-2 shrink-0 border-t border-rose-100/60 bg-white/95 space-y-2">
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black border border-rose-200/80 transition-all active:scale-95 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Keluar / Logout</span>
+            </button>
+          )}
+
           <div className="bg-gradient-to-br from-rose-50 to-pink-100/70 border border-rose-200/80 rounded-2xl p-3 text-center shadow-xs relative overflow-hidden group">
             <div className="absolute -top-6 -right-6 w-16 h-16 bg-rose-300/30 rounded-full blur-lg pointer-events-none" />
 
