@@ -22,6 +22,8 @@ interface OrderModalProps {
   userId: string;
   robloxUser: RobloxUser | null;
   orderSuccess: boolean;
+  qrisImagePath?: string;
+  storeName?: string;
   onConfirmOrder: (orderDetails: {
     whatsappNumber: string;
     notes: string;
@@ -37,6 +39,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   userId,
   robloxUser,
   orderSuccess,
+  qrisImagePath,
+  storeName = "Zerly Gamers",
   onConfirmOrder,
 }) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -191,16 +195,26 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
               {/* QRIS Code Image Container */}
               <div className="bg-white p-3 rounded-2xl border-2 border-gray-800 shadow-md relative group flex flex-col items-center">
-                <div className="w-44 h-44 bg-white flex items-center justify-center relative p-1">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=00020101021126570011ID.ZERLYGAMERS.WWW0118936009110022345678520458125303360540${selectedPackage.priceNumber}5802ID5912ZERLY_GAMERS6007JAKARTA6304ABCD`}
-                    alt="QRIS Code Pembayaran"
-                    className="w-full h-full object-contain"
-                  />
-                  {/* Center QRIS logo badge */}
-                  <div className="absolute inset-0 m-auto w-9 h-9 bg-white rounded-lg p-1 shadow-sm border border-gray-200 flex items-center justify-center">
-                    <img src="/payments/qris.png" alt="QRIS" className="w-full h-full object-contain" />
-                  </div>
+                <div className="w-48 h-48 bg-white flex items-center justify-center relative p-1">
+                  {qrisImagePath ? (
+                    <img
+                      src={qrisImagePath}
+                      alt={`QRIS Toko ${storeName}`}
+                      className="w-full h-full object-contain rounded-xl"
+                    />
+                  ) : (
+                    <>
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=00020101021126570011ID.ZERLYGAMERS.WWW0118936009110022345678520458125303360540${selectedPackage.priceNumber}5802ID5912ZERLY_GAMERS6007JAKARTA6304ABCD`}
+                        alt="QRIS Code Pembayaran"
+                        className="w-full h-full object-contain"
+                      />
+                      {/* Center QRIS logo badge */}
+                      <div className="absolute inset-0 m-auto w-9 h-9 bg-white rounded-lg p-1 shadow-sm border border-gray-200 flex items-center justify-center">
+                        <img src="/payments/qris.png" alt="QRIS" className="w-full h-full object-contain" />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
