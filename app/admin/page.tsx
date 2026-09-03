@@ -52,6 +52,7 @@ import TestimonialsView from '@/components/admin/TestimonialsView';
 import PaymentHistoryView from '@/components/admin/PaymentHistoryView';
 import StoreSettingsView from '@/components/admin/StoreSettingsView';
 import RetentionWarningBanner from '@/components/admin/RetentionWarningBanner';
+import AdminLoginForm from '@/components/admin/AdminLoginForm';
 import {
   AdminOrder,
   AdminPricelistItem,
@@ -59,6 +60,10 @@ import {
 } from '@/data/adminDummyData';
 
 export default function AdminPage() {
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [adminUser, setAdminUser] = useState<{ username: string; role: string } | null>(null);
+
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +78,39 @@ export default function AdminPage() {
   const [testimonialModalOrder, setTestimonialModalOrder] = useState<AdminOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Check auth session
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.authenticated && json.user) {
+        setIsAuthenticated(true);
+        setAdminUser(json.user);
+      } else {
+        setIsAuthenticated(false);
+        setAdminUser(null);
+      }
+    } catch {
+      setIsAuthenticated(false);
+      setAdminUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleLogout = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin keluar dari panel admin ZerlyGamers?')) {
+      return;
+    }
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setIsAuthenticated(false);
+    setAdminUser(null);
+  };
 
   const fetchStats = useCallback(async () => {
     try {
@@ -413,6 +451,40 @@ export default function AdminPage() {
     }
   };
 
+  // 1. Loading Screen while verifying session
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-[#FFF5F8] flex flex-col items-center justify-center p-4">
+        <div className="relative w-36 h-12 mb-4">
+          <Image
+            src="/logo.png"
+            alt="Zerly Gamers"
+            fill
+            sizes="144px"
+            className="object-contain"
+            priority
+          />
+        </div>
+        <div className="w-8 h-8 border-3 border-[#FF2A85]/20 border-t-[#FF2A85] rounded-full animate-spin mb-3" />
+        <p className="text-xs sm:text-sm font-black text-[#FF2A85] uppercase tracking-wider">
+          Memverifikasi Sesi Admin...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Gate Screen: If not logged in, render gorgeous AdminLoginForm
+  if (!isAuthenticated) {
+    return (
+      <AdminLoginForm
+        onLoginSuccess={(user) => {
+          setIsAuthenticated(true);
+          setAdminUser(user);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FFF5F8] flex font-sans text-gray-800">
       {/* Sidebar Navigation */}
@@ -422,6 +494,7 @@ export default function AdminPage() {
           setCurrentTab(tab);
           setSelectedOrder(null);
         }}
+        onLogout={handleLogout}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         orderCounts={orderCounts}
@@ -443,6 +516,7 @@ export default function AdminPage() {
             setCurrentTab(tab);
             setSelectedOrder(null);
           }}
+          onLogout={handleLogout}
         />
 
         {/* Dashboard Body */}
