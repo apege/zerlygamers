@@ -51,6 +51,7 @@ import BlacklistView from '@/components/admin/BlacklistView';
 import TestimonialsView from '@/components/admin/TestimonialsView';
 import PaymentHistoryView from '@/components/admin/PaymentHistoryView';
 import StoreSettingsView from '@/components/admin/StoreSettingsView';
+import RetentionWarningBanner from '@/components/admin/RetentionWarningBanner';
 import {
   AdminOrder,
   AdminPricelistItem,
@@ -155,6 +156,7 @@ export default function AdminPage() {
             robloxIdStatus: 'aktif',
             customerNote: o.customer_notes || undefined,
             adminNote: o.admin_notes || undefined,
+            paymentProofPath: o.payment_proof_path || undefined,
           };
         });
         setOrders(mappedOrders);
@@ -455,6 +457,9 @@ export default function AdminPage() {
           ) : currentTab.startsWith('order-') ? (
             /* ORDER MANAGEMENT LIST VIEW */
             <div className="space-y-5">
+              {/* Retention & Storage Cleanup Warning Banner */}
+              <RetentionWarningBanner />
+
               {/* Header Title & Refresh Button */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -572,9 +577,18 @@ export default function AdminPage() {
                             {ord.status === 'masuk' && (
                               <button
                                 onClick={() => handleUpdateOrderStatus(ord.id, 'diproses', 'Sedang Diproses')}
-                                className="px-3.5 sm:px-4 py-1.5 rounded-2xl text-xs font-extrabold bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 transition-all cursor-pointer"
+                                className="px-3.5 sm:px-4 py-2 rounded-2xl text-xs font-black bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 transition-all active:scale-95 cursor-pointer"
                               >
                                 Proses
+                              </button>
+                            )}
+                            {ord.status === 'diproses' && (
+                              <button
+                                onClick={() => handleUpdateOrderStatus(ord.id, 'selesai', 'Transaksi Sukses')}
+                                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-2xl text-xs font-black bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>Selesai</span>
                               </button>
                             )}
                             {ord.status === 'selesai' && (
@@ -717,6 +731,9 @@ export default function AdminPage() {
                 ))}
               </section>
 
+              {/* Retention & Storage Cleanup Warning Banner */}
+              <RetentionWarningBanner />
+
               {/* 3. Middle 3-Column Grid (ChampionStore layout proportion: 3 / 6 / 3) */}
               <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
                 {/* Left Card (col-span-3): Aktivitas Terbaru */}
@@ -768,7 +785,14 @@ export default function AdminPage() {
 
                 {/* Center Card (col-span-6): PERINGATAN! ID ROBLOX BELUM AKTIF */}
                 <div className="lg:col-span-6">
-                  <RobloxWarningCard />
+                  <RobloxWarningCard
+                    pendingOrders={orders.filter((o) => o.status === 'masuk')}
+                    onUpdateStatus={handleUpdateOrderStatus}
+                    onOpenOrderDetail={(ord) => {
+                      setSelectedOrder(ord);
+                      setCurrentTab('order-masuk');
+                    }}
+                  />
                 </div>
 
                 {/* Right Card (col-span-3): Pengumuman */}
