@@ -5,9 +5,13 @@ import { PaymentMethod } from "@/types/landing";
 
 interface PaymentFooterProps {
   paymentMethods: PaymentMethod[];
+  storeName?: string;
 }
 
-export const PaymentFooter: React.FC<PaymentFooterProps> = ({ paymentMethods }) => {
+export const PaymentFooter: React.FC<PaymentFooterProps> = ({
+  paymentMethods,
+  storeName = "Zerly Gamers",
+}) => {
   return (
     <>
       <footer className="w-full bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
@@ -72,7 +76,7 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({ paymentMethods }) 
 
       {/* Bottom Credits & Copyright */}
       <div className="text-center text-gray-400 text-[11px] font-medium py-1">
-        &copy; {new Date().getFullYear()} Zerly Gamers. All rights reserved. Platform Top Up Game Terpercaya di Indonesia.
+        &copy; {new Date().getFullYear()} {storeName}. All rights reserved. Platform Top Up Game Terpercaya di Indonesia.
       </div>
     </>
   );

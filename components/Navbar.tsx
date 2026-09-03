@@ -7,28 +7,48 @@ import { ChevronDown, User, Menu, X, Home as HomeIcon, Gamepad2, HelpCircle, Mes
 interface NavbarProps {
   onOpenCaraOrder: () => void;
   onOpenFaq: () => void;
+  storeName?: string;
+  logoPath?: string;
+  whatsappNumber?: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenCaraOrder, onOpenFaq }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onOpenCaraOrder,
+  onOpenFaq,
+  storeName: initialStoreName,
+  logoPath: initialLogoPath,
+  whatsappNumber: initialWaNumber,
+}) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [storeName, setStoreName] = useState("Zerly Gamers");
-  const [logoPath, setLogoPath] = useState("/logo.png");
+  const [storeName, setStoreName] = useState(initialStoreName || "Zerly Gamers");
+  const [logoPath, setLogoPath] = useState(initialLogoPath || "/logo.png");
+  const [whatsappNumber, setWhatsappNumber] = useState(initialWaNumber || "6285624595886");
+
+  useEffect(() => {
+    if (initialStoreName) setStoreName(initialStoreName);
+    if (initialLogoPath) setLogoPath(initialLogoPath);
+    if (initialWaNumber) setWhatsappNumber(initialWaNumber);
+  }, [initialStoreName, initialLogoPath, initialWaNumber]);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch("/api/settings");
+        const res = await fetch("/api/settings", { cache: "no-store" });
         const json = await res.json();
         if (json.success && json.data) {
           if (json.data.store_name) setStoreName(json.data.store_name);
           if (json.data.logo_image_path) setLogoPath(json.data.logo_image_path);
+          if (json.data.whatsapp_number) setWhatsappNumber(json.data.whatsapp_number);
         }
       } catch (err) {
-        console.error("Failed to fetch store settings:", err);
+        console.error("Failed to fetch store settings in Navbar:", err);
       }
     };
     fetchSettings();
   }, []);
+
+  const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+  const waContactLink = `https://wa.me/${cleanWa}?text=Halo%20Admin%20${encodeURIComponent(storeName)}%2C%20saya%20ingin%20bertanya%20seputar%20top%20up%20Robux.`;
 
   // Split store name into primary and secondary words if applicable
   const nameParts = storeName.trim().split(" ");
@@ -50,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCaraOrder, onOpenFaq }) =>
               priority
               className="object-contain drop-shadow-xs h-9 sm:h-11 w-auto group-hover:scale-105 transition-transform"
             />
-            {/* Dynamic Store Name Display (Loaded from /api/settings) */}
+            {/* Dynamic Store Name Display */}
             <div className="flex flex-col text-left">
               <span className="text-xs sm:text-sm lg:text-base font-black text-[#FF1D7E] leading-none tracking-wider uppercase">
                 {mainWord}
@@ -122,14 +142,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCaraOrder, onOpenFaq }) =>
             FAQ
           </button>
 
-          {/* KONTAK */}
+          {/* KONTAK DYNAMIC WHATSAPP */}
           <a
-            href="https://wa.me/6281234567890"
+            href={waContactLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2"
+            className="text-gray-900 hover:text-[#FF2E88] font-black text-xs lg:text-[13px] uppercase tracking-wide transition-colors py-2 flex items-center gap-1"
           >
-            KONTAK
+            <PhoneCall className="w-3.5 h-3.5 text-emerald-500" />
+            <span>KONTAK</span>
           </a>
         </nav>
 
@@ -227,13 +248,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCaraOrder, onOpenFaq }) =>
           </button>
 
           <a
-            href="https://wa.me/6281234567890"
+            href={waContactLink}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs"
           >
-            <PhoneCall className="w-4 h-4 text-pink-500" />
+            <PhoneCall className="w-4 h-4 text-emerald-500" />
             <span>KONTAK WHATSAPP</span>
           </a>
         </div>
