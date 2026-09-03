@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   ArrowLeft,
@@ -24,6 +24,11 @@ import {
   Edit2,
   Save,
   Heart,
+  CreditCard,
+  Upload,
+  Maximize2,
+  Eye,
+  ImageIcon,
 } from 'lucide-react';
 import { AdminOrder } from '@/data/adminDummyData';
 import TestimonialTokenModal from '@/components/admin/TestimonialTokenModal';
@@ -39,6 +44,12 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
   const [currentUsername, setCurrentUsername] = useState(order.username);
   const [currentRobloxUserId, setCurrentRobloxUserId] = useState(order.robloxUserId || '');
   
+  // Payment Proof State
+  const [paymentProof, setPaymentProof] = useState<string | null>(order.paymentProofPath || null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
+
   // Inline edit username state
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState(order.username);
@@ -63,11 +74,12 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
     setUsernameInput(order.username);
     setCurrentRobloxUserId(order.robloxUserId || '');
     setAdminNote(order.adminNote || '');
+    setPaymentProof(order.paymentProofPath || null);
     setIsIdActive(
       order.status === 'diproses' || order.status === 'selesai' || order.robloxIdStatus === 'aktif'
     );
     setIsEditingUsername(false);
-  }, [order.id, order.username, order.robloxUserId, order.adminNote, order.status, order.robloxIdStatus]);
+  }, [order.id, order.username, order.robloxUserId, order.adminNote, order.status, order.robloxIdStatus, order.paymentProofPath]);
 
   const copyToClipboard = (text: string, type: 'id' | 'phone') => {
     navigator.clipboard.writeText(text);
@@ -94,6 +106,42 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
       setTimeout(() => setNoteSavedAlert(false), 2500);
     } catch (err) {
       console.error('Failed to save note:', err);
+    }
+  };
+
+  // Upload payment proof image
+  const handleUploadProof = async (file: File) => {
+    setIsUploadingProof(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'payment_proof');
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (uploadData.success && uploadData.url) {
+        setPaymentProof(uploadData.url);
+        // Persist to Neon DB
+        await fetch('/api/orders', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: order.id,
+            payment_proof_path: uploadData.url,
+          }),
+        });
+      } else {
+        alert(uploadData.error || 'Gagal mengunggah bukti pembayaran');
+      }
+    } catch (err) {
+      console.error('Upload proof error:', err);
+      alert('Terjadi kesalahan saat mengunggah bukti pembayaran.');
+    } finally {
+      setIsUploadingProof(false);
     }
   };
 
@@ -168,7 +216,7 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
               Detail Transaksi
             </span>
             <span className="text-xs text-rose-400 font-bold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Zerly Gamers
+              <Sparkles className="w-3.5 h-3.5" /> Zerly Orders
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 bg-clip-text text-transparent tracking-tight mt-1">
@@ -372,7 +420,7 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
         )}
       </div>
 
-      {/* Main 2-Column Grid */}
+      {/* Main 2-Column Grid (Row 1: Detail & Info Pelanggan, Row 2: Bukti Pembayaran & Catatan) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         {/* Card 1: Detail Pesanan */}
         <div className="bg-white border border-rose-100/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
@@ -504,36 +552,121 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
             )}
           </div>
         </div>
-      </div>
 
-      {/* Card 3: Catatan Internal Admin */}
-      <div className="bg-white border border-rose-100/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-rose-100">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
-              <FileText className="w-4 h-4" />
+        {/* Card 3: Bukti Transfer Pembeli */}
+        <div className="bg-white border border-rose-100/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-rose-100">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                <Receipt className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-xs font-black uppercase tracking-wider text-gray-900">
+                  BUKTI PEMBAYARAN PEMBELI
+                </h2>
+                <p className="text-[10px] text-gray-400 font-medium">Struk Transfer / Screenshot QRIS dari Pelanggan</p>
+              </div>
             </div>
-            <h2 className="text-xs font-black uppercase tracking-wider text-gray-900">
-              CATATAN INTERNAL ADMIN
-            </h2>
-          </div>
-          {noteSavedAlert && (
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 animate-in fade-in">
-              Catatan tersimpan!
+
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                paymentProof
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+            >
+              {paymentProof ? 'TERLAMPIR ✓' : 'BELUM ADA BUKTI'}
             </span>
+          </div>
+
+          {paymentProof ? (
+            <div className="space-y-3">
+              <div
+                onClick={() => setShowProofModal(true)}
+                className="relative h-48 w-full rounded-2xl overflow-hidden border border-rose-200 bg-rose-50/30 group cursor-pointer shadow-xs flex items-center justify-center"
+              >
+                <Image
+                  src={paymentProof}
+                  alt="Bukti Transfer Pembeli"
+                  fill
+                  sizes="400px"
+                  className="object-contain p-2 group-hover:scale-105 transition-transform"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-bold">
+                  <Eye className="w-4 h-4" />
+                  <span>Klik untuk Perbesar</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowProofModal(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:underline cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Lihat Gambar Penuh</span>
+                </button>
+
+                <a
+                  href={paymentProof}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Tab Baru</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-rose-50/30 border border-dashed border-rose-200 rounded-2xl p-6 text-center flex flex-col items-center justify-center space-y-2 min-h-[160px]">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100/70 text-rose-500 flex items-center justify-center">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-black text-gray-800">
+                  Belum Ada Bukti Transfer
+                </p>
+                <p className="text-[11px] text-gray-500 font-medium max-w-xs leading-relaxed">
+                  Pesanan ini dibuat sebelum sistem upload bukti dihubungkan atau pembeli belum mengirimkan bukti transfer saat checkout.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="space-y-3">
-          <textarea
-            value={adminNote}
-            onChange={(e) => setAdminNote(e.target.value)}
-            rows={3}
-            placeholder="Tulis catatan operasional untuk order ini (hanya dapat dilihat oleh admin)..."
-            className="w-full p-3.5 bg-rose-50/30 border border-rose-200 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 resize-none font-medium"
-          />
+        {/* Card 4: Catatan Internal Admin */}
+        <div className="bg-white border border-rose-100/90 rounded-3xl p-5 sm:p-6 shadow-xs space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-2 border-b border-rose-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <h2 className="text-xs font-black uppercase tracking-wider text-gray-900">
+                  CATATAN INTERNAL ADMIN
+                </h2>
+              </div>
+              {noteSavedAlert && (
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 animate-in fade-in">
+                  Catatan tersimpan!
+                </span>
+              )}
+            </div>
 
-          <div className="flex justify-end">
+            <div className="pt-2">
+              <textarea
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                rows={4}
+                placeholder="Tulis catatan operasional untuk order ini (hanya dapat dilihat oleh admin)..."
+                className="w-full p-3.5 bg-rose-50/30 border border-rose-200 rounded-2xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 resize-none font-medium leading-relaxed"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
             <button
               onClick={handleSaveNote}
               className="px-5 py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
@@ -543,6 +676,66 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* POPUP MODAL LIHAT BUKTI PEMBAYARAN FULL */}
+      {/* ============================================================ */}
+      {showProofModal && paymentProof && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-2xl w-full border border-rose-200 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-rose-100">
+              <div>
+                <h3 className="font-black text-gray-900 text-base">Bukti Pembayaran Order</h3>
+                <p className="text-[11px] text-gray-400 font-mono font-medium">
+                  {order.orderNumber} • {order.username} • {order.priceFormatted}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowProofModal(false)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative w-full h-96 sm:h-[450px] bg-black/5 rounded-2xl overflow-hidden border border-rose-100 flex items-center justify-center">
+              <Image
+                src={paymentProof}
+                alt="Bukti Pembayaran Full"
+                fill
+                sizes="800px"
+                className="object-contain p-2"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-gray-500 font-medium">
+                Metode: <strong className="text-gray-900">{order.paymentMethod}</strong>
+              </span>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={paymentProof}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-all"
+                >
+                  Buka Tab Baru
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowProofModal(false)}
+                  className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* POPUP MODAL KONFIRMASI AKTIVASI ID ROBLOX */}
