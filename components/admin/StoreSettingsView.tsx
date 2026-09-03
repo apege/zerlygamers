@@ -42,6 +42,7 @@ export default function StoreSettingsView() {
   const [whatsappNumber, setWhatsappNumber] = useState('6285624595886');
 
   // 2. Promo Banner State
+  const [productsList, setProductsList] = useState<Array<{ id: number; robux: number; price: number; badge?: string }>>([]);
   const [isPromoActive, setIsPromoActive] = useState(true);
   const [promoItem, setPromoItem] = useState('2.200 Robux');
   const [promoAmount, setPromoAmount] = useState(2200);
@@ -57,6 +58,18 @@ export default function StoreSettingsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/products', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setProductsList(json.data.filter((p: any) => p.is_active !== false));
+      }
+    } catch (err) {
+      console.error('Failed to load products for promo dropdown:', err);
+    }
+  }, []);
 
   // Handle file upload to /api/upload
   const handleFileUpload = async (file: File, type: 'qris' | 'logo') => {
@@ -134,7 +147,8 @@ export default function StoreSettingsView() {
 
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchProducts();
+  }, [fetchSettings, fetchProducts]);
 
   const toggleSection = (key: string) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -349,33 +363,32 @@ export default function StoreSettingsView() {
                     Paket Robux yang Dipromosikan
                   </label>
                   <select
-                    value={promoItem}
+                    value={promoAmount}
                     onChange={(e) => {
-                      setPromoItem(e.target.value);
-                      if (e.target.value === '2.200 Robux') {
-                        setPromoAmount(2200);
-                        setPromoDiscountPrice(45000);
-                        setPromoPrice('Rp 45.000');
-                      } else if (e.target.value === '1.800 Robux') {
-                        setPromoAmount(1800);
-                        setPromoDiscountPrice(35000);
-                        setPromoPrice('Rp 35.000');
-                      } else if (e.target.value === '3.200 Robux') {
-                        setPromoAmount(3200);
-                        setPromoDiscountPrice(60000);
-                        setPromoPrice('Rp 60.000');
-                      } else if (e.target.value === '10.500 Robux') {
-                        setPromoAmount(10500);
-                        setPromoDiscountPrice(200000);
-                        setPromoPrice('Rp 200.000');
+                      const selectedRobux = Number(e.target.value);
+                      setPromoAmount(selectedRobux);
+                      const found = productsList.find((p) => p.robux === selectedRobux);
+                      if (found) {
+                        setPromoDiscountPrice(found.price);
+                        setPromoPrice(`Rp ${Number(found.price).toLocaleString('id-ID')}`);
+                        setPromoItem(`${Number(found.robux).toLocaleString('id-ID')} Robux`);
+                      } else {
+                        setPromoItem(`${Number(selectedRobux).toLocaleString('id-ID')} Robux`);
                       }
                     }}
-                    className="w-full px-4 py-2.5 bg-white border border-rose-200 rounded-2xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400"
+                    className="w-full px-4 py-2.5 bg-white border border-rose-200 rounded-2xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 cursor-pointer"
                   >
-                    <option value="1.800 Robux">1.800 Robux (Rp 35.000)</option>
-                    <option value="2.200 Robux">2.200 Robux (Rp 45.000) - Rekomendasi</option>
-                    <option value="3.200 Robux">3.200 Robux (Rp 60.000)</option>
-                    <option value="10.500 Robux">10.500 Robux (Rp 200.000) - Sultan</option>
+                    {productsList.length === 0 ? (
+                      <option value={promoAmount}>
+                        {Number(promoAmount).toLocaleString('id-ID')} Robux ({promoPrice})
+                      </option>
+                    ) : (
+                      productsList.map((p) => (
+                        <option key={p.id} value={p.robux}>
+                          {Number(p.robux).toLocaleString('id-ID')} Robux (Rp {Number(p.price).toLocaleString('id-ID')}) {p.badge ? `• ${p.badge}` : ''}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
