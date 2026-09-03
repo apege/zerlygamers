@@ -23,24 +23,31 @@ export const AllPackagesModal: React.FC<AllPackagesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="all-packages-title"
+      className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+    >
       <div className="bg-white rounded-3xl border-2 border-pink-300 w-full max-w-2xl p-6 shadow-2xl relative overflow-hidden flex flex-col gap-4 text-left max-h-[90vh] overflow-y-auto">
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-pink-600 transition-colors p-1 rounded-full hover:bg-pink-50 cursor-pointer"
+          aria-label="Tutup modal katalog paket"
+          className="absolute top-4 right-4 text-gray-500 hover:text-pink-600 transition-colors p-1 rounded-full hover:bg-pink-50 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X aria-hidden="true" className="w-5 h-5" />
         </button>
 
         {/* Modal Title */}
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles aria-hidden="true" className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-black text-gray-900 uppercase">Daftar Lengkap Paket Robux</h3>
-            <p className="text-xs text-gray-500">Pilih nominal yang kamu inginkan untuk langsung mengisi form order</p>
+            <h3 id="all-packages-title" className="text-base font-black text-gray-900 uppercase">Daftar Lengkap Paket Robux</h3>
+            <p className="text-xs text-gray-600">Pilih nominal yang kamu inginkan untuk langsung mengisi form order</p>
           </div>
         </div>
 
@@ -51,13 +58,26 @@ export const AllPackagesModal: React.FC<AllPackagesModalProps> = ({
             return (
               <div
                 key={pkg.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                aria-label={`Paket ${pkg.amount} Robux, harga ${pkg.priceFormatted}`}
                 onClick={() => {
                   onSelectPackage(pkg);
                   onClose();
                   const formElem = document.getElementById("form-order");
                   if (formElem) formElem.scrollIntoView({ behavior: "smooth" });
                 }}
-                className={`relative rounded-2xl flex flex-col items-center justify-between p-3.5 transition-all cursor-pointer select-none ${
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectPackage(pkg);
+                    onClose();
+                    const formElem = document.getElementById("form-order");
+                    if (formElem) formElem.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className={`relative rounded-2xl flex flex-col items-center justify-between p-3.5 transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#FF2E88] ${
                   isSelected
                     ? "bg-pink-50/70 border-2 border-[#FF2E88] shadow-md shadow-pink-200"
                     : "bg-white border-2 border-pink-200/80 hover:border-pink-300 hover:bg-pink-50/30"
@@ -68,12 +88,12 @@ export const AllPackagesModal: React.FC<AllPackagesModalProps> = ({
                     BEST SELLER
                   </div>
                 )}
-                <span className="text-[11px] font-bold text-gray-500 uppercase">ROBUX</span>
+                <span className="text-[11px] font-bold text-gray-600 uppercase">ROBUX</span>
                 <span className="text-2xl font-black text-gray-900">{pkg.amount}</span>
                 <div className="my-2 w-12 h-12 flex items-center justify-center">
-                  <Image src="/robux.webp" alt="Robux" width={44} height={44} className="object-contain" />
+                  <Image src="/robux.webp" alt={`Robux ${pkg.amount}`} width={44} height={44} className="object-contain" />
                 </div>
-                <div className="w-full text-center py-1.5 px-2 rounded-xl text-xs font-extrabold bg-pink-50 text-[#FF2E88] border border-pink-200">
+                <div className="w-full text-center py-1.5 px-2 rounded-xl text-xs font-extrabold bg-pink-50 text-[#D81467] border border-pink-200">
                   {pkg.priceFormatted}
                 </div>
               </div>
