@@ -172,7 +172,7 @@ export const FormOrder: React.FC<FormOrderProps> = ({
         <div className="flex flex-col gap-1.5 text-left">
           <span className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center justify-between">
             <span>2. NOMINAL ROBUX</span>
-            <span className="text-[10px] text-[#D81467] font-bold">Pilih di katalog sebelah</span>
+            <span className="text-[10px] text-[#BE185D] font-bold">Pilih di katalog sebelah</span>
           </span>
           
           <div className="w-full bg-pink-50/70 border-2 border-pink-200 rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
@@ -190,7 +190,7 @@ export const FormOrder: React.FC<FormOrderProps> = ({
                 {selectedPackage.amount} Robux
               </span>
             </div>
-            <span className="text-xs sm:text-sm font-black text-[#FF1D7E] bg-white px-2.5 py-1 rounded-xl border border-pink-200 shadow-2xs">
+            <span className="text-xs sm:text-sm font-black text-[#BE185D] bg-white px-2.5 py-1 rounded-xl border border-pink-200 shadow-2xs">
               {selectedPackage.priceFormatted}
             </span>
           </div>
@@ -210,12 +210,12 @@ export const FormOrder: React.FC<FormOrderProps> = ({
               onClick={() => onOrderMethodChange("website")}
               className={`p-2.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#FF2E88] ${
                 orderMethod === "website"
-                  ? "border-[#FF2E88] bg-pink-50/80 text-[#D81467] shadow-xs scale-[1.02]"
+                  ? "border-[#FF2E88] bg-pink-50/80 text-[#BE185D] shadow-xs scale-[1.02]"
                   : "border-gray-200 bg-white text-gray-700 hover:border-pink-200 hover:bg-pink-50/30"
               }`}
             >
               <div className="flex items-center gap-1.5">
-                <Globe aria-hidden="true" className={`w-4 h-4 ${orderMethod === "website" ? "text-[#D81467]" : "text-gray-600"}`} />
+                <Globe aria-hidden="true" className={`w-4 h-4 ${orderMethod === "website" ? "text-[#BE185D]" : "text-gray-600"}`} />
                 <span className="text-xs font-black uppercase">Via Website</span>
               </div>
               <span className="text-[9.5px] font-semibold text-gray-600">QRIS / E-Wallet</span>

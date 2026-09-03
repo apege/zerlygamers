@@ -21,7 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [storeName, setStoreName] = useState(initialStoreName || "Zerly Gamers");
-  const [logoPath, setLogoPath] = useState(initialLogoPath || "/logo.png");
+  const [logoPath, setLogoPath] = useState(initialLogoPath || "/logo.webp");
   const [whatsappNumber, setWhatsappNumber] = useState(initialWaNumber || "6285624595886");
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* 1. Left: Brand Logo & Dynamic Store Name from API */}
         <div className="flex items-center">
-          <a href="#" aria-label={`${storeName} Home`} className="flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-95 group">
+          <a href="/" aria-label={`${storeName} - Beranda`} className="flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-95 group">
             <Image
               src={logoPath}
               alt={storeName}
@@ -56,10 +56,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             />
             {/* Dynamic Store Name Display */}
             <div className="flex flex-col text-left">
-              <span className="text-xs sm:text-sm lg:text-base font-black text-[#FF1D7E] leading-none tracking-wider uppercase">
+              <span className="text-xs sm:text-sm lg:text-base font-black text-[#BE185D] leading-none tracking-wider uppercase">
                 {mainWord}
               </span>
-              <span className="text-[8.5px] sm:text-[9.5px] font-black text-gray-600 tracking-widest leading-none mt-0.5 uppercase">
+              <span className="text-[8.5px] sm:text-[9.5px] font-black text-gray-700 tracking-widest leading-none mt-0.5 uppercase">
                 {subWord}
               </span>
             </div>
@@ -192,49 +192,51 @@ export const Navbar: React.FC<NavbarProps> = ({
           <a
             href="#beranda"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-pink-50 text-[#FF2E88] font-bold text-xs"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-pink-50 text-[#BE185D] font-bold text-xs"
           >
-            <HomeIcon className="w-4 h-4 text-[#FF2E88]" />
+            <HomeIcon aria-hidden="true" className="w-4 h-4 text-[#BE185D]" />
             <span>BERANDA</span>
           </a>
 
           <a
             href="#topup"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#BE185D] font-bold text-xs"
           >
-            <Gamepad2 className="w-4 h-4 text-pink-500" />
+            <Gamepad2 aria-hidden="true" className="w-4 h-4 text-[#BE185D]" />
             <span>TOP UP ROBUX</span>
           </a>
 
           <button
+            type="button"
             onClick={() => {
               setMobileMenuOpen(false);
               onOpenCaraOrder();
             }}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs text-left cursor-pointer"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#BE185D] font-bold text-xs text-left cursor-pointer"
           >
-            <BookOpen className="w-4 h-4 text-pink-500" />
+            <BookOpen aria-hidden="true" className="w-4 h-4 text-[#BE185D]" />
             <span>CARA ORDER</span>
           </button>
 
           <a
             href="#testimoni"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#BE185D] font-bold text-xs"
           >
-            <MessageSquare className="w-4 h-4 text-pink-500" />
+            <MessageSquare aria-hidden="true" className="w-4 h-4 text-[#BE185D]" />
             <span>TESTIMONI</span>
           </a>
 
           <button
+            type="button"
             onClick={() => {
               setMobileMenuOpen(false);
               onOpenFaq();
             }}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs text-left cursor-pointer"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#BE185D] font-bold text-xs text-left cursor-pointer"
           >
-            <HelpCircle className="w-4 h-4 text-pink-500" />
+            <HelpCircle aria-hidden="true" className="w-4 h-4 text-[#BE185D]" />
             <span>FAQ</span>
           </button>
 
@@ -243,9 +245,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#FF2E88] font-bold text-xs"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-800 hover:bg-pink-50 hover:text-[#BE185D] font-bold text-xs"
           >
-            <PhoneCall className="w-4 h-4 text-emerald-500" />
+            <PhoneCall aria-hidden="true" className="w-4 h-4 text-emerald-600" />
             <span>KONTAK WHATSAPP</span>
           </a>
         </div>

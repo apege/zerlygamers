@@ -36,10 +36,10 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
     <div className="lg:col-span-8 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col gap-4">
       {/* 1. Header with Hexagon Robux Gaming Icon */}
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center shadow-xs">
+        <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#BE185D] border border-pink-300 flex items-center justify-center shadow-xs">
           <svg
             aria-hidden="true"
-            className="w-4 h-4 text-[#FF2E88] stroke-[2.5]"
+            className="w-4 h-4 text-[#BE185D] stroke-[2.5]"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -50,7 +50,7 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
             <circle cx="12" cy="12" r="3" />
           </svg>
         </div>
-        <h2 className="text-base sm:text-lg font-black uppercase tracking-wide text-[#FF1D7E]">
+        <h2 className="text-base sm:text-lg font-black uppercase tracking-wide text-[#BE185D]">
           TOP UP ROBUX
         </h2>
       </div>
@@ -92,7 +92,7 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
               <div className="text-center pt-1">
                 <span
                   className={`text-[10.5px] font-black uppercase tracking-wider block ${
-                    isBestSeller ? "text-[#D81467]" : "text-gray-800"
+                    isBestSeller ? "text-[#BE185D]" : "text-gray-800"
                   }`}
                 >
                   ROBUX
@@ -109,6 +109,7 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
                   alt={`Koin Robux ${pkg.amount}`}
                   width={46}
                   height={46}
+                  sizes="46px"
                   className={`object-contain transition-transform duration-300 drop-shadow-md ${
                     isSelected ? "scale-110" : "hover:scale-105"
                   }`}
@@ -135,7 +136,7 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
         <button
           type="button"
           onClick={onOpenAllPackages}
-          className="inline-flex items-center gap-1.5 px-6 py-2 rounded-full border-2 border-pink-300 bg-white hover:bg-pink-50 text-[#D81467] font-black text-xs uppercase tracking-wider shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-6 py-2 rounded-full border-2 border-pink-300 bg-white hover:bg-pink-50 text-[#BE185D] font-black text-xs uppercase tracking-wider shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
           <span>LIHAT SEMUA PAKET</span>
           <ChevronRight aria-hidden="true" className="w-4 h-4 stroke-[3]" />

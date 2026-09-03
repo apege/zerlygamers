@@ -8,10 +8,10 @@ export const WhyChooseUs: React.FC = () => {
     <div className="lg:col-span-7 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col gap-3.5">
       {/* Header with matching hexagon icon */}
       <div className="flex items-center gap-2.5 text-left">
-        <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center shadow-xs">
+        <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#BE185D] border border-pink-300 flex items-center justify-center shadow-xs">
           <svg
             aria-hidden="true"
-            className="w-4 h-4 text-[#FF2E88] stroke-[2.5]"
+            className="w-4 h-4 text-[#BE185D] stroke-[2.5]"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -22,7 +22,7 @@ export const WhyChooseUs: React.FC = () => {
             <circle cx="12" cy="12" r="3" />
           </svg>
         </div>
-        <h3 className="text-xs sm:text-sm md:text-base font-black uppercase tracking-wide text-[#FF1D7E]">
+        <h3 className="text-xs sm:text-sm md:text-base font-black uppercase tracking-wide text-[#BE185D]">
           KENAPA PILIH ZERLY GAMERS?
         </h3>
       </div>

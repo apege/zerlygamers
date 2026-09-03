@@ -16,7 +16,7 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
       <footer className="w-full bg-white/95 backdrop-blur-md rounded-3xl border-2 border-pink-200/90 p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
         {/* Left: METODE PEMBAYARAN with Large Direct Official Logos (No tiny cards) */}
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="text-xs font-black text-[#FF1D7E] uppercase tracking-wider shrink-0 mr-1">
+          <span className="text-xs font-black text-[#BE185D] uppercase tracking-wider shrink-0 mr-1">
             METODE PEMBAYARAN
           </span>
 

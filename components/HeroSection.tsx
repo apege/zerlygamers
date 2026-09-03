@@ -66,23 +66,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="lg:col-span-4 flex flex-col items-start gap-2.5 text-left z-20 order-1">
           {/* Badge Top Headline (Promo vs #1 Top Up) */}
           {isPromoActive ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-100 via-rose-100 to-amber-100 border border-pink-300/90 text-[#D81467] text-[10.5px] sm:text-[11px] font-black tracking-wider uppercase shadow-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-100 via-rose-100 to-amber-100 border border-pink-300/90 text-[#BE185D] text-[10.5px] sm:text-[11px] font-black tracking-wider uppercase shadow-xs">
               <Flame aria-hidden="true" className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
               <span>PROMO SPESIAL HARI INI</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-100/95 border border-pink-300/90 text-[#D81467] text-[10.5px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-xs">
-              <Sparkles aria-hidden="true" className="w-3.5 h-3.5 text-[#D81467]" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-100/95 border border-pink-300/90 text-[#BE185D] text-[10.5px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-xs">
+              <Sparkles aria-hidden="true" className="w-3.5 h-3.5 text-[#BE185D]" />
               <span>#1 TOP UP GAME TERPERCAYA</span>
             </div>
           )}
 
           {/* Main Typography Header */}
           <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-black leading-[1.1] sm:leading-[1.08] tracking-tight uppercase">
-            <span className="block text-[#FF1D7E] drop-shadow-[0_2px_4px_rgba(255,29,126,0.18)]">
+            <span className="block text-[#BE185D] drop-shadow-[0_2px_4px_rgba(255,29,126,0.18)]">
               TOP UP GAME
             </span>
-            <span className="block text-[#FF2E88] drop-shadow-[0_2px_4px_rgba(255,46,136,0.18)]">
+            <span className="block text-[#D81467] drop-shadow-[0_2px_4px_rgba(255,46,136,0.18)]">
               AMAN, CEPAT &amp; TERPERCAYA
             </span>
           </h1>
@@ -91,8 +91,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {isPromoActive && promoData ? (
             <div className="w-full max-w-sm p-3 rounded-2xl bg-gradient-to-r from-pink-50/95 via-rose-50/85 to-amber-50/70 border border-pink-200/90 shadow-xs space-y-1 animate-in fade-in">
               <div className="flex items-start gap-1.5">
-                <div className="w-5 h-5 rounded-md bg-rose-100 text-[#FF2E88] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <Zap aria-hidden="true" className="w-3 h-3 fill-[#FF2E88]" />
+                <div className="w-5 h-5 rounded-md bg-rose-100 text-[#BE185D] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <Zap aria-hidden="true" className="w-3 h-3 fill-[#BE185D]" />
                 </div>
                 <p className="text-[11.5px] sm:text-xs text-gray-800 font-medium leading-snug">
                   Dapatkan promo spesial{" "}
@@ -100,7 +100,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     {promoData.robuxAmount.toLocaleString("id-ID")} Robux
                   </strong>{" "}
                   cuma{" "}
-                  <span className="font-black text-[#D81467] text-[13px]">
+                  <span className="font-black text-[#BE185D] text-[13px]">
                     Rp {promoData.discountPrice.toLocaleString("id-ID")}
                   </span>{" "}
                   {promoData.originalPrice && promoData.originalPrice > promoData.discountPrice && (
@@ -129,7 +129,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           ) : (
             <p className="text-xs sm:text-[13px] text-gray-700 font-medium max-w-sm leading-relaxed">
               Top up game favoritmu dengan harga terbaik, proses instan, dan 100% aman di{" "}
-              <span className="font-bold text-[#D81467]">Zerly Gamers</span>!
+              <span className="font-bold text-[#BE185D]">Zerly Gamers</span>!
             </p>
           )}
 
@@ -151,7 +151,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <button
               type="button"
               onClick={onOpenAllPackages}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-white/95 hover:bg-pink-50/80 border-2 border-pink-300 text-[#D81467] font-extrabold text-xs px-4 py-2.5 rounded-full shadow-xs hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-white/95 hover:bg-pink-50/80 border-2 border-pink-300 text-[#BE185D] font-extrabold text-xs px-4 py-2.5 rounded-full shadow-xs hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
             >
               <span>LIHAT SEMUA HARGA</span>
               <ChevronRight aria-hidden="true" className="w-4 h-4 stroke-[3]" />
@@ -262,7 +262,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Mascot Character Image */}
             <div className="absolute z-10 w-full flex items-center justify-center lg:justify-end pr-0 sm:pr-2 lg:pr-4 animate-float-slow -top-3 sm:-top-8 lg:-top-14 translate-y-3 sm:translate-y-8 lg:translate-y-14 lg:translate-x-12">
               <Image
-                src="/karakter.png"
+                src="/karakter.webp"
                 alt="Zerly Gamers Mascot Character"
                 width={540}
                 height={540}
@@ -275,12 +275,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Big Shield Logo Emblem */}
             <div className="absolute bottom-2 sm:bottom-4 left-3 sm:-left-4 lg:-left-16 z-20 pointer-events-none">
               <Image
-                src="/logo.png"
+                src="/logo.webp"
                 alt="Zerly Gamers Shield Emblem"
                 width={280}
                 height={110}
                 sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 280px"
-                priority
                 className="object-contain drop-shadow-[0_12px_24px_rgba(255,42,133,0.4)] w-[150px] sm:w-[200px] lg:w-[280px] h-auto"
               />
             </div>

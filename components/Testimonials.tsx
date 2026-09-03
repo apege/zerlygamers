@@ -58,7 +58,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between text-left">
-        <h3 className="text-xs sm:text-sm font-black uppercase tracking-wide text-[#FF1D7E]">
+        <h3 className="text-xs sm:text-sm font-black uppercase tracking-wide text-[#BE185D]">
           APA KATA GAMERS?
         </h3>
       </div>
@@ -70,7 +70,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
           type="button"
           onClick={onPrev}
           aria-label="Ulasan Sebelumnya"
-          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-pink-600 flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
+          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-[#BE185D] flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
         >
           <ChevronLeft aria-hidden="true" className="w-4 h-4" />
         </button>
@@ -107,8 +107,8 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
             {/* Admin Reply (Compact, Clean & Layout-Safe) */}
             {adminReplyText && (
               <div className="mt-1.5 pt-1.5 border-t border-pink-200/60 flex items-start gap-1 text-[10.5px]">
-                <div className="flex items-center gap-1 text-[#FF1D7E] font-black shrink-0 text-[10px] bg-pink-100/90 border border-pink-200 px-1.5 py-0.2 rounded-md">
-                  <ShieldCheck aria-hidden="true" className="w-3 h-3 text-[#FF2E88]" />
+                <div className="flex items-center gap-1 text-[#BE185D] font-black shrink-0 text-[10px] bg-pink-100/90 border border-pink-200 px-1.5 py-0.2 rounded-md">
+                  <ShieldCheck aria-hidden="true" className="w-3 h-3 text-[#BE185D]" />
                   <span>Admin:</span>
                 </div>
                 <p className="text-gray-800 italic font-medium leading-tight truncate">
@@ -124,7 +124,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({
           type="button"
           onClick={onNext}
           aria-label="Ulasan Berikutnya"
-          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-pink-600 flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
+          className="w-8 h-8 rounded-full bg-white border border-pink-200 text-[#BE185D] flex items-center justify-center hover:bg-pink-100 transition-colors shrink-0 cursor-pointer shadow-2xs"
         >
           <ChevronRight aria-hidden="true" className="w-4 h-4" />
         </button>

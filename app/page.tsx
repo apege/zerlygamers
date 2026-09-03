@@ -52,7 +52,7 @@ export default function ZerlyGamersPage() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
   const [whatsappNumber, setWhatsappNumber] = useState("6285624595886");
   const [storeName, setStoreName] = useState("Zerly Gamers");
-  const [logoPath, setLogoPath] = useState("/logo.png");
+  const [logoPath, setLogoPath] = useState("/logo.webp");
   const [qrisImagePath, setQrisImagePath] = useState("/qris.jpeg");
 
   // Selected Order State
