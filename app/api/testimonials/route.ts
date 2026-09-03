@@ -10,9 +10,45 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
-// GET: Fetch all testimonials
+// GET: Fetch all testimonials or check token existence
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get('token');
+
+    if (token) {
+      const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
+      const existing = await sql`
+        SELECT 
+          id,
+          user_id,
+          name as username,
+          message as comment,
+          rating,
+          image_path,
+          status,
+          order_code as item_package,
+          admin_reply,
+          created_at,
+          updated_at
+        FROM "public"."testimonials"
+        WHERE order_code ILIKE ${`%${cleanToken}%`}
+        LIMIT 1;
+      `;
+
+      if (existing.length > 0) {
+        return NextResponse.json(
+          { success: true, has_reviewed: true, data: existing[0] },
+          { status: 200, headers: noCacheHeaders }
+        );
+      } else {
+        return NextResponse.json(
+          { success: true, has_reviewed: false },
+          { status: 200, headers: noCacheHeaders }
+        );
+      }
+    }
+
     const testimonials = await sql`
       SELECT 
         id,
@@ -43,11 +79,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Add new testimonial
+// POST: Add new testimonial (1 review per token)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, message, rating = 5, order_code = '2.200 Robux', status = 'approved' } = body;
+    const { name, message, rating = 5, order_code = '2.200 Robux', token, status = 'approved' } = body;
 
     if (!name || !message) {
       return NextResponse.json(
@@ -57,6 +93,28 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanUsername = name.startsWith('@') ? name : `@${name.trim()}`;
+    const tokenToCheck = token ? token.replace(/[^a-zA-Z0-9]/g, '') : '';
+
+    // Check duplicate review by token if provided
+    if (tokenToCheck) {
+      const existing = await sql`
+        SELECT id FROM "public"."testimonials"
+        WHERE order_code ILIKE ${`%${tokenToCheck}%`}
+        LIMIT 1;
+      `;
+
+      if (existing.length > 0) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Kamu sudah pernah memberikan ulasan untuk pesanan ini! Setiap pesanan hanya dapat diulas 1 kali.' 
+          },
+          { status: 409, headers: noCacheHeaders }
+        );
+      }
+    }
+
+    const savedOrderCode = tokenToCheck ? `${order_code} • #${tokenToCheck}` : order_code;
 
     const result = await sql`
       INSERT INTO "public"."testimonials" (
@@ -71,7 +129,7 @@ export async function POST(request: NextRequest) {
         ${cleanUsername},
         ${message},
         ${rating},
-        ${order_code},
+        ${savedOrderCode},
         ${status},
         NOW(),
         NOW()
