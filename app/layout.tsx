@@ -1,27 +1,18 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Poppins, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800", "900"],
-  display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
-
-export const viewport: Viewport = {
-  themeColor: "#FF2E88",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-};
 
 export const metadata: Metadata = {
   title: "Zerly Gamers - #1 Top Up Game Terpercaya & Instan",

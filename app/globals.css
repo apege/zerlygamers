@@ -83,41 +83,24 @@ body {
 
 .animate-float-slow {
   animation: floatSlow 4s ease-in-out infinite;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .animate-pulse-glow {
   animation: pulseGlow 2.5s ease-in-out infinite;
-  will-change: transform, opacity;
-  transform: translateZ(0);
 }
 
 .animate-sparkle {
   animation: sparkleSpin 6s linear infinite;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .animate-marquee-smooth {
   display: flex;
   width: max-content;
   animation: marqueeScroll 18s linear infinite;
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .animate-marquee-smooth:hover {
   animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-float-slow,
-  .animate-pulse-glow,
-  .animate-sparkle,
-  .animate-marquee-smooth {
-    animation: none !important;
-  }
 }
 
 /* Custom Scrollbar */
