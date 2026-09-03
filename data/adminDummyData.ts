@@ -21,6 +21,7 @@ export interface AdminOrder {
   robloxIdStatus: 'aktif' | 'belum_aktif' | 'terverifikasi';
   customerNote?: string;
   adminNote?: string;
+  paymentProofPath?: string;
 }
 
 export interface AdminPricelistItem {
