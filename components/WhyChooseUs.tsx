@@ -10,6 +10,7 @@ export const WhyChooseUs: React.FC = () => {
       <div className="flex items-center gap-2.5 text-left">
         <div className="w-7 h-7 rounded-xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center shadow-xs">
           <svg
+            aria-hidden="true"
             className="w-4 h-4 text-[#FF2E88] stroke-[2.5]"
             viewBox="0 0 24 24"
             fill="none"
@@ -31,13 +32,13 @@ export const WhyChooseUs: React.FC = () => {
         {/* Feature 1 */}
         <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
-            <ShieldCheck className="w-4.5 h-4.5" />
+            <ShieldCheck aria-hidden="true" className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-gray-800 uppercase leading-tight">
               AMAN &amp; RESMI
             </span>
-            <span className="text-[9px] text-gray-500 font-medium leading-tight mt-0.5">
+            <span className="text-[9px] text-gray-600 font-medium leading-tight mt-0.5">
               100% legal terjamin
             </span>
           </div>
@@ -46,13 +47,13 @@ export const WhyChooseUs: React.FC = () => {
         {/* Feature 2 */}
         <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
-            <Zap className="w-4.5 h-4.5" />
+            <Zap aria-hidden="true" className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-gray-800 uppercase leading-tight">
               PROSES CEPAT
             </span>
-            <span className="text-[9px] text-gray-500 font-medium leading-tight mt-0.5">
+            <span className="text-[9px] text-gray-600 font-medium leading-tight mt-0.5">
               Hitungan menit
             </span>
           </div>
@@ -61,13 +62,13 @@ export const WhyChooseUs: React.FC = () => {
         {/* Feature 3 */}
         <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
-            <Award className="w-4.5 h-4.5" />
+            <Award aria-hidden="true" className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-gray-800 uppercase leading-tight">
               HARGA TERBAIK
             </span>
-            <span className="text-[9px] text-gray-500 font-medium leading-tight mt-0.5">
+            <span className="text-[9px] text-gray-600 font-medium leading-tight mt-0.5">
               Murah &amp; bersaing
             </span>
           </div>
@@ -76,13 +77,13 @@ export const WhyChooseUs: React.FC = () => {
         {/* Feature 4 */}
         <div className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
-            <Headphones className="w-4.5 h-4.5" />
+            <Headphones aria-hidden="true" className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-gray-800 uppercase leading-tight">
               LAYANAN 24/7
             </span>
-            <span className="text-[9px] text-gray-500 font-medium leading-tight mt-0.5">
+            <span className="text-[9px] text-gray-600 font-medium leading-tight mt-0.5">
               Admin fast respon
             </span>
           </div>
@@ -91,13 +92,13 @@ export const WhyChooseUs: React.FC = () => {
         {/* Feature 5 */}
         <div className="col-span-2 sm:col-span-1 flex flex-col items-center text-center gap-1.5 p-2.5 rounded-2xl bg-pink-50/40 border border-pink-100/80">
           <div className="w-9 h-9 rounded-xl bg-pink-50 border border-pink-200 flex items-center justify-center text-[#FF2E88]">
-            <Wallet className="w-4.5 h-4.5" />
+            <Wallet aria-hidden="true" className="w-4.5 h-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-gray-800 uppercase leading-tight">
               BANYAK METODE
             </span>
-            <span className="text-[9px] text-gray-500 font-medium leading-tight mt-0.5">
+            <span className="text-[9px] text-gray-600 font-medium leading-tight mt-0.5">
               QRIS &amp; E-Wallet
             </span>
           </div>

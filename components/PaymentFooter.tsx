@@ -1,6 +1,5 @@
-"use client";
-
 import React from "react";
+import Image from "next/image";
 import { PaymentMethod } from "@/types/landing";
 
 interface PaymentFooterProps {
@@ -29,10 +28,13 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
                 title={method.name}
               >
                 {method.logo ? (
-                  <img
+                  <Image
                     src={method.logo}
-                    alt={method.name}
-                    className="h-6 sm:h-7 max-w-[78px] object-contain drop-shadow-2xs"
+                    alt={`Metode pembayaran ${method.name}`}
+                    width={70}
+                    height={26}
+                    loading="lazy"
+                    className="h-6 sm:h-7 w-auto max-w-[78px] object-contain drop-shadow-2xs"
                   />
                 ) : (
                   <span className="text-xs font-black text-gray-800">{method.name}</span>
@@ -45,13 +47,13 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
         {/* Right: TRUSTED BY GAMERS */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
               TRUSTED BY GAMERS
             </span>
           </div>
 
           {/* Overlapping Colorful Initial Badges */}
-          <div className="flex -space-x-2 overflow-hidden items-center">
+          <div aria-hidden="true" className="flex -space-x-2 overflow-hidden items-center">
             <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#FF2E88] to-[#FF55A3] ring-2 ring-white flex items-center justify-center text-white text-[10px] font-black">
               G
             </div>
@@ -69,13 +71,13 @@ export const PaymentFooter: React.FC<PaymentFooterProps> = ({
           {/* 10.000+ Transaksi Berhasil Badge */}
           <div className="bg-gradient-to-r from-[#FF2E88] to-[#FF4E98] text-white px-3 py-1 rounded-full text-[11px] font-black tracking-wide uppercase shadow-xs flex items-center gap-1">
             <span>10.000+</span>
-            <span className="text-[9.5px] font-semibold opacity-90">Transaksi Berhasil</span>
+            <span className="text-[9.5px] font-semibold opacity-95">Transaksi Berhasil</span>
           </div>
         </div>
       </footer>
 
       {/* Bottom Credits & Copyright */}
-      <div className="text-center text-gray-400 text-[11px] font-medium py-1">
+      <div className="text-center text-gray-600 text-[11px] font-medium py-1">
         &copy; {new Date().getFullYear()} {storeName}. All rights reserved. Platform Top Up Game Terpercaya di Indonesia.
       </div>
     </>
