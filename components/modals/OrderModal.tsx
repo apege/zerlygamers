@@ -95,44 +95,37 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="order-modal-title"
-      className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200"
-    >
+    <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border-2 border-pink-300 w-full max-w-lg p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col gap-4 text-left max-h-[92vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
-          type="button"
           onClick={onClose}
-          aria-label="Tutup modal pembayaran"
-          className="absolute top-4 right-4 text-gray-500 hover:text-pink-600 transition-colors p-1.5 rounded-full hover:bg-pink-50 cursor-pointer z-10"
+          className="absolute top-4 right-4 text-gray-400 hover:text-pink-600 transition-colors p-1.5 rounded-full hover:bg-pink-50 cursor-pointer z-10"
         >
-          <X aria-hidden="true" className="w-5 h-5" />
+          <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-pink-100 text-[#FF2E88] border border-pink-300 flex items-center justify-center shrink-0 shadow-xs">
-            <Gamepad2 aria-hidden="true" className="w-5 h-5" />
+            <Gamepad2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 id="order-modal-title" className="text-base font-black text-gray-900 uppercase tracking-wide">
+            <h3 className="text-base font-black text-gray-900 uppercase tracking-wide">
               PEMBAYARAN QRIS INSTAN
             </h3>
-            <p className="text-xs text-gray-600">Scan QRIS &amp; upload bukti untuk proses otomatis</p>
+            <p className="text-xs text-gray-500">Scan QRIS &amp; upload bukti untuk proses otomatis</p>
           </div>
         </div>
 
         {orderSuccess ? (
           <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-6 text-center flex flex-col items-center gap-3 my-2 animate-in zoom-in-95 duration-200">
-            <CheckCircle2 aria-hidden="true" className="w-12 h-12 text-emerald-500 animate-bounce" />
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 animate-bounce" />
             <div className="text-base font-black text-emerald-900">
               Pesanan Berhasil Dikirim!
             </div>
-            <p className="text-xs text-emerald-800 leading-relaxed max-w-sm">
+            <p className="text-xs text-emerald-700 leading-relaxed max-w-sm">
               Bukti pembayaran kamu telah diterima. Admin Zerly Gamers sedang memverifikasi dan mengirim Robux ke akun <strong>@{robloxUser ? robloxUser.name : userId}</strong>.
             </p>
             <div className="w-full bg-white rounded-xl p-3 border border-emerald-200 text-xs text-left flex flex-col gap-1 text-gray-700">
@@ -146,7 +139,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
             </div>
             <button
-              type="button"
               onClick={onClose}
               className="mt-2 w-full bg-[#059669] hover:bg-[#047857] text-white font-bold py-2.5 rounded-full text-xs uppercase cursor-pointer"
             >
@@ -159,7 +151,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             {/* 1. Order Summary (NO GAME ROW) */}
             <div className="bg-pink-50/70 border border-pink-200 rounded-2xl p-3.5 flex flex-col gap-2 text-xs">
               <div className="flex justify-between items-center py-1 border-b border-pink-200/60">
-                <span className="text-gray-600 font-medium">Akun Roblox</span>
+                <span className="text-gray-500 font-medium">Akun Roblox</span>
                 <div className="flex items-center gap-1.5">
                   {robloxUser?.avatarUrl && (
                     <img
@@ -175,15 +167,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               </div>
 
               <div className="flex justify-between items-center py-1 border-b border-pink-200/60">
-                <span className="text-gray-600 font-medium">Paket Item</span>
-                <div className="flex items-center gap-1.5 font-black text-[#D81467]">
+                <span className="text-gray-500 font-medium">Paket Item</span>
+                <div className="flex items-center gap-1.5 font-black text-[#FF2E88]">
                   <Image src="/robux.webp" alt="Robux" width={18} height={18} className="object-contain" />
                   <span>{selectedPackage.amount} Robux</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center py-1">
-                <span className="text-gray-600 font-medium">Total Pembayaran</span>
+                <span className="text-gray-500 font-medium">Total Pembayaran</span>
                 <span className="text-base font-black text-[#FF1D7E]">{selectedPackage.priceFormatted}</span>
               </div>
             </div>
@@ -193,10 +185,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               <div className="flex items-center gap-2 w-full justify-between pb-1 border-b border-pink-100">
                 <div className="flex items-center gap-1.5">
                   <img src="/payments/qris.png" alt="QRIS" className="h-4.5 object-contain" />
-                  <span className="text-[10px] font-bold text-gray-600">Scan Semua Pembayaran</span>
+                  <span className="text-[10px] font-bold text-gray-500">Scan Semua Pembayaran</span>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-[#D81467] bg-pink-100 px-2 py-0.5 rounded-full">
-                  <Clock aria-hidden="true" className="w-3 h-3" />
+                <div className="flex items-center gap-1 text-[10px] font-bold text-pink-600 bg-pink-100 px-2 py-0.5 rounded-full">
+                  <Clock className="w-3 h-3" />
                   <span>Proses Cepat</span>
                 </div>
               </div>
@@ -236,16 +228,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 <img src="/payments/mandiri.png" alt="Mandiri" className="h-3.5 object-contain" />
               </div>
 
-              <p className="text-[10.5px] text-gray-600">
+              <p className="text-[10.5px] text-gray-500">
                 Buka aplikasi BCA, Mandiri, DANA, GoPay, OVO, atau ShopeePay lalu scan QRIS di atas dengan nominal pas <strong>{selectedPackage.priceFormatted}</strong>
               </p>
             </div>
 
             {/* 3. Upload Bukti Pembayaran */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label htmlFor="proof-upload" className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center justify-between">
                 <span>UPLOAD BUKTI PEMBAYARAN</span>
-                <span className="text-[10px] text-[#D81467] font-bold">Wajib diupload</span>
+                <span className="text-[10px] text-[#FF2E88] font-bold">Wajib diupload</span>
               </label>
 
               <input
@@ -269,17 +261,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       <span className="text-xs font-bold text-emerald-900 truncate">
                         {proofFile?.name || "Bukti Transfer Terpilih"}
                       </span>
-                      <span className="text-[10px] text-emerald-800">Gambar siap dikirim</span>
+                      <span className="text-[10px] text-emerald-700">Gambar siap dikirim</span>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleRemoveFile}
-                    aria-label="Hapus file bukti pembayaran"
-                    className="p-1.5 text-gray-500 hover:text-red-500 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-white transition-colors cursor-pointer"
                   >
-                    <X aria-hidden="true" className="w-4 h-4" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
@@ -287,65 +278,58 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   htmlFor="proof-upload"
                   className="border-2 border-dashed border-pink-300 hover:border-[#FF2E88] bg-pink-50/40 hover:bg-pink-50/70 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
-                  <UploadCloud aria-hidden="true" className="w-6 h-6 text-[#FF2E88]" />
-                  <span className="text-xs font-bold text-gray-800">
+                  <UploadCloud className="w-6 h-6 text-[#FF2E88]" />
+                  <span className="text-xs font-bold text-gray-700">
                     Klik untuk Upload Screenshot Bukti Transfer
                   </span>
-                  <span className="text-[10px] text-gray-600">Format: JPG, PNG, JPEG (Maks. 5MB)</span>
+                  <span className="text-[10px] text-gray-400">Format: JPG, PNG, JPEG (Maks. 5MB)</span>
                 </label>
               )}
             </div>
 
             {/* 4. Nomor WhatsApp Pembeli */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label htmlFor="order-whatsapp" className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center justify-between">
                 <span>NOMOR WHATSAPP KAMU</span>
-                <span className="text-[10px] text-gray-600 font-semibold">Untuk info pesanan</span>
+                <span className="text-[10px] text-gray-400 font-semibold">Untuk info pesanan</span>
               </label>
               <div className="relative">
                 <input
-                  id="order-whatsapp"
-                  name="order-whatsapp"
                   type="tel"
-                  autoComplete="tel"
                   value={whatsappNumber}
                   onChange={(e) => {
                     setWhatsappNumber(e.target.value);
                     if (errorMsg) setErrorMsg("");
                   }}
                   placeholder="Contoh: 081234567890"
-                  aria-label="Nomor WhatsApp kamu"
-                  className="w-full bg-white border-2 border-pink-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 placeholder-gray-500 focus:outline-none focus:border-[#FF2E88] transition-colors pl-9"
+                  className="w-full bg-white border-2 border-pink-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#FF2E88] transition-colors pl-9"
                 />
-                <Phone aria-hidden="true" className="w-4 h-4 text-pink-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Phone className="w-4 h-4 text-pink-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
             {/* 5. Catatan (Opsional) */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label htmlFor="order-notes" className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center justify-between">
+              <label className="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center justify-between">
                 <span>CATATAN PESANAN</span>
-                <span className="text-[10px] text-gray-600 font-semibold">Opsional</span>
+                <span className="text-[10px] text-gray-400 font-semibold">Opsional</span>
               </label>
               <div className="relative">
                 <input
-                  id="order-notes"
-                  name="order-notes"
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Tulis catatan jika ada..."
-                  aria-label="Catatan pesanan opsional"
-                  className="w-full bg-white border-2 border-pink-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 placeholder-gray-500 focus:outline-none focus:border-[#FF2E88] transition-colors pl-9"
+                  className="w-full bg-white border-2 border-pink-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#FF2E88] transition-colors pl-9"
                 />
-                <FileText aria-hidden="true" className="w-4 h-4 text-pink-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <FileText className="w-4 h-4 text-pink-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
             {/* Error Message */}
             {errorMsg && (
-              <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 font-medium text-left">
-                <AlertCircle aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />
+              <div className="bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 font-medium text-left">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -356,7 +340,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               className="w-full mt-1 bg-gradient-to-r from-[#FF2E88] via-[#FF3B93] to-[#FF55A3] hover:from-[#E61B75] hover:to-[#FF3B93] text-white font-black text-xs sm:text-sm py-3.5 rounded-full shadow-lg shadow-pink-500/35 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>KIRIM BUKTI PEMBAYARAN</span>
-              <ChevronRight aria-hidden="true" className="w-4 h-4 stroke-[3]" />
+              <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
 
           </form>
