@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   Gamepad2,
@@ -12,6 +12,7 @@ import {
   FileText,
   AlertCircle,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { RobuxPackage, RobloxUser } from "@/types/landing";
 
@@ -54,6 +55,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (orderSuccess) {
+      setIsSubmitting(false);
+    }
+  }, [orderSuccess]);
 
   if (!isOpen) return null;
 
@@ -389,10 +396,20 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full mt-1 bg-gradient-to-r from-[#FF2E88] via-[#FF3B93] to-[#FF55A3] hover:from-[#E61B75] hover:to-[#FF3B93] text-white font-black text-xs sm:text-sm py-3.5 rounded-full shadow-lg shadow-pink-500/35 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSubmitting}
+              className="w-full mt-1 bg-gradient-to-r from-[#FF2E88] via-[#FF3B93] to-[#FF55A3] hover:from-[#E61B75] hover:to-[#FF3B93] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm py-3.5 rounded-full shadow-lg shadow-pink-500/35 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>KIRIM BUKTI PEMBAYARAN</span>
-              <ChevronRight className="w-4 h-4 stroke-[3]" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>MENGIRIM BUKTI &amp; PESANAN...</span>
+                </>
+              ) : (
+                <>
+                  <span>KIRIM BUKTI PEMBAYARAN</span>
+                  <ChevronRight className="w-4 h-4 stroke-[3]" />
+                </>
+              )}
             </button>
 
           </form>

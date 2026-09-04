@@ -240,22 +240,22 @@ export default function ZerlyGamersPage() {
     if (orderMethod === "whatsapp") {
       // Direct WhatsApp Order Flow
       const invoiceNumber = `ZG-${Math.floor(100000 + Math.random() * 900000)}`;
-      const message = `Halo Admin ${storeName}, saya ingin order via WhatsApp:%0A%0A` +
-        `*No Invoice:* ${invoiceNumber}%0A` +
-        `*Paket:* ${selectedPackage.amount} Robux%0A` +
-        `*Total Bayar:* ${selectedPackage.priceFormatted}%0A` +
-        `*Akun Roblox:* ${displayAccount}%0A` +
-        `*Metode Order:* Via WhatsApp Admin%0A%0A` +
+      const messageText = `Halo Admin ${storeName}, saya ingin order via WhatsApp:\n\n` +
+        `*No Invoice:* ${invoiceNumber}\n` +
+        `*Paket:* ${selectedPackage.amount} Robux\n` +
+        `*Total Bayar:* ${selectedPackage.priceFormatted}\n` +
+        `*Akun Roblox:* ${displayAccount}\n` +
+        `*Metode Order:* Via WhatsApp Admin\n\n` +
         `Mohon segera diproses ya kak. Terima kasih! 💖`;
 
       const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
-      const waLink = `https://wa.me/${cleanWa}?text=${message}`;
+      const waLink = `https://wa.me/${cleanWa}?text=${encodeURIComponent(messageText)}`;
 
       setWaInvoiceNumber(invoiceNumber);
       setWaDirectLink(waLink);
       setShowWhatsAppModal(true);
 
-      // Save order in database
+      // Save order in database (non-blocking)
       try {
         fetch("/api/orders", {
           method: "POST",
@@ -278,7 +278,11 @@ export default function ZerlyGamersPage() {
       }
 
       // Automatically launch WhatsApp window
-      window.open(waLink, "_blank");
+      try {
+        window.open(waLink, "_blank");
+      } catch {
+        // Handled by modal fallback CTA
+      }
     } else {
       // Via Website: Open QRIS Checkout Modal
       setShowOrderModal(true);
@@ -291,7 +295,7 @@ export default function ZerlyGamersPage() {
     proofFile: File | null;
     proofUrl: string | null;
   }) => {
-    const invoiceNumber = `#ZLY${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const invoiceNumber = `ZLY-${Math.floor(10000000 + Math.random() * 90000000)}`;
     const displayAccount = robloxUser
       ? `${robloxUser.displayName} (@${robloxUser.name})`
       : userId;
@@ -339,27 +343,27 @@ export default function ZerlyGamersPage() {
     }
 
     const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
-    const message = `Halo Admin ${storeName}, saya telah order di website:%0A%0A` +
-      `*No Invoice:* ${invoiceNumber}%0A` +
-      `*Paket:* ${selectedPackage.amount} Robux%0A` +
-      `*Total Bayar:* ${selectedPackage.priceFormatted}%0A` +
-      `*Akun Roblox:* ${displayAccount}%0A` +
-      `*No. WhatsApp Pembeli:* ${details.whatsappNumber}%0A` +
-      (details.notes ? `*Catatan:* ${details.notes}%0A` : "") +
-      `*Metode Pembayaran:* QRIS Otomatis Website%0A%0A` +
+    const messageText = `Halo Admin ${storeName}, saya telah order di website:\n\n` +
+      `*No Invoice:* ${invoiceNumber}\n` +
+      `*Paket:* ${selectedPackage.amount} Robux\n` +
+      `*Total Bayar:* ${selectedPackage.priceFormatted}\n` +
+      `*Akun Roblox:* ${displayAccount}\n` +
+      `*No. WhatsApp Pembeli:* ${details.whatsappNumber}\n` +
+      (details.notes ? `*Catatan:* ${details.notes}\n` : "") +
+      `*Metode Pembayaran:* QRIS Otomatis Website\n\n` +
       `Mohon segera dicek & dikirim Robux-nya ya kak. Terima kasih! 💖`;
 
-    const waUrl = `https://wa.me/${cleanWa}?text=${message}`;
+    const waUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(messageText)}`;
 
     setWebsiteInvoiceNumber(invoiceNumber);
     setWebsiteWaDirectLink(waUrl);
     setOrderSuccess(true);
 
-    // Open WhatsApp in new window immediately
+    // Attempt to open WhatsApp window (if not blocked by browser async popup guard)
     try {
       window.open(waUrl, "_blank");
     } catch {
-      // ignore popup blocker error fallback
+      // User can click the prominent direct button in modal
     }
   };
 
