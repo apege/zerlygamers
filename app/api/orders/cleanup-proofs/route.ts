@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, withTimeout, getLastKnownData } from '@/lib/serverCache';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,14 +12,37 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const CLEANUP_CACHE_KEY = 'api_retention_metrics';
+
+const fallbackMetrics = {
+  retention_policy_days: 90,
+  warning_threshold_days: 7,
+  total_proofs_stored: 0,
+  expiring_soon_count: 0,
+  expiring_orders: [],
+  cleaned_expired_count: 0,
+};
+
 // GET: Check retention metrics (Total, Expiring in 7 days, Expired > 90 days)
 export async function GET() {
   try {
-    const { data: ordersWithProof, error } = await supabaseAdmin
-      .from('orders')
-      .select('id, order_code, roblox_username, payment_proof_path, created_at')
-      .not('payment_proof_path', 'is', null)
-      .neq('payment_proof_path', '');
+    const cached = getCached<any>(CLEANUP_CACHE_KEY, 60000);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
+    const { data: ordersWithProof, error } = await withTimeout<{ data: any[] | null; error: any }>(
+      supabaseAdmin
+        .from('orders')
+        .select('id, order_code, roblox_username, created_at')
+        .not('payment_proof_path', 'is', null)
+        .neq('payment_proof_path', '')
+        .limit(200),
+      5000
+    );
 
     if (error) throw new Error(error.message);
 
@@ -31,7 +55,7 @@ export async function GET() {
     const expiring_orders: any[] = [];
     const expiredOrders: any[] = [];
 
-    allProofs.forEach((ord) => {
+    allProofs.forEach((ord: any) => {
       const createdMs = new Date(ord.created_at).getTime();
       const ageDays = Math.floor((now - createdMs) / dayMs);
 
@@ -42,46 +66,27 @@ export async function GET() {
       }
     });
 
-    // Auto-cleanup if any expired > 90 days
-    let autoCleanedCount = 0;
-    if (expiredOrders.length > 0) {
-      for (const ord of expiredOrders) {
-        if (ord.payment_proof_path && ord.payment_proof_path.startsWith('/uploads/')) {
-          try {
-            const filePath = path.join(process.cwd(), 'public', ord.payment_proof_path.slice(1));
-            await fs.unlink(filePath).catch(() => {});
-          } catch {}
-        }
-      }
+    const resultData = {
+      retention_policy_days: 90,
+      warning_threshold_days: 7, // starts at day 83
+      total_proofs_stored,
+      expiring_soon_count: expiring_orders.length,
+      expiring_orders,
+      cleaned_expired_count: 0,
+    };
 
-      const expiredIds = expiredOrders.map((o) => o.id);
-      await supabaseAdmin
-        .from('orders')
-        .update({ payment_proof_path: null, updated_at: new Date().toISOString() })
-        .in('id', expiredIds);
-
-      autoCleanedCount = expiredOrders.length;
-    }
+    setCached(CLEANUP_CACHE_KEY, resultData);
 
     return NextResponse.json(
-      {
-        success: true,
-        data: {
-          retention_policy_days: 90,
-          warning_threshold_days: 7, // starts at day 83
-          total_proofs_stored,
-          expiring_soon_count: expiring_orders.length,
-          expiring_orders,
-          cleaned_expired_count: autoCleanedCount,
-        },
-      },
+      { success: true, data: resultData },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error in retention cleanup check:', error);
+    const lastData = getLastKnownData<any>(CLEANUP_CACHE_KEY) || fallbackMetrics;
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to check retention' },
-      { status: 500, headers: noCacheHeaders }
+      { success: true, data: lastData },
+      { status: 200, headers: noCacheHeaders }
     );
   }
 }

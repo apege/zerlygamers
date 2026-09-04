@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
+import { getCached, setCached, invalidateCache, withTimeout, getLastKnownData } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,11 +21,14 @@ export async function GET(request: NextRequest) {
 
     if (token) {
       const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
-      const { data: order, error } = await supabaseAdmin
-        .from('orders')
-        .select('*')
-        .ilike('order_code', `%${cleanToken}%`)
-        .limit(1);
+      const { data: order, error } = await withTimeout<{ data: any[] | null; error: any }>(
+        supabaseAdmin
+          .from('orders')
+          .select('*')
+          .ilike('order_code', `%${cleanToken}%`)
+          .limit(1),
+        4000
+      );
 
       if (error) throw new Error(error.message);
 
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const cached = getCached<any[]>(ORDERS_CACHE_KEY, 10000);
+    const cached = getCached<any[]>(ORDERS_CACHE_KEY, 30000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },
@@ -50,10 +53,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: orders, error } = await supabaseAdmin
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data: orders, error } = await withTimeout<{ data: any[] | null; error: any }>(
+      supabaseAdmin
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200),
+      5000
+    );
 
     if (error) throw new Error(error.message);
 
@@ -65,6 +72,13 @@ export async function GET(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('Error fetching orders:', error);
+    const lastKnown = getLastKnownData<any[]>(ORDERS_CACHE_KEY);
+    if (lastKnown) {
+      return NextResponse.json(
+        { success: true, data: lastKnown },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to fetch orders' },
       { status: 500, headers: noCacheHeaders }
