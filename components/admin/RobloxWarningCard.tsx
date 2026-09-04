@@ -81,7 +81,7 @@ export default function RobloxWarningCard() {
           <div className="flex items-center justify-between px-3.5 py-2.5 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider shrink-0">
-                TARGET USER:
+                USERNAME:
               </span>
 
               {isEditingManualUser ? (
@@ -135,7 +135,7 @@ export default function RobloxWarningCard() {
                 <span>Aktivasi Diperlukan</span>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                ID Roblox <strong className="text-rose-600">{currentTargetUser}</strong> (Input Manual Admin) terdeteksi belum aktif. Silakan lakukan proses aktivasi untuk melanjutkan transaksi.
+                ID Roblox <strong className="text-rose-600">{currentTargetUser}</strong> terdeteksi belum aktif. Silakan lakukan proses aktivasi untuk melanjutkan transaksi.
               </p>
             </div>
 
