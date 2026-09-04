@@ -211,12 +211,12 @@ export default function AdminPage() {
     fetchOrders();
     fetchStats();
 
-    // Gentle polling for orders every 25 seconds when tab is visible
+    // Gentle polling for orders every 60 seconds when tab is visible
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchOrders();
       }
-    }, 25000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [fetchOrders, fetchStats]);
@@ -862,14 +862,7 @@ export default function AdminPage() {
 
                 {/* Center Card (col-span-6): PERINGATAN! ID ROBLOX BELUM AKTIF */}
                 <div className="lg:col-span-6">
-                  <RobloxWarningCard
-                    pendingOrders={orders.filter((o) => o.status === 'masuk')}
-                    onUpdateStatus={handleUpdateOrderStatus}
-                    onOpenOrderDetail={(ord) => {
-                      setSelectedOrder(ord);
-                      setCurrentTab('order-masuk');
-                    }}
-                  />
+                  <RobloxWarningCard />
                 </div>
 
                 {/* Right Card (col-span-3): Pengumuman */}
