@@ -8,10 +8,10 @@
   [![React](https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react)](https://react.dev/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-  [![PostgreSQL](https://img.shields.io/badge/Neon_PostgreSQL-Serverless-00E599?style=for-the-badge&logo=postgresql)](https://neon.tech/)
+  [![PostgreSQL](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 
   <p align="center">
-    <strong>Website E-Commerce Top Up Game Modern, Cepat, dan Aman dengan Integrasi Real-Time Database Neon PostgreSQL, Integrasi API Akun Roblox, Admin Dashboard Lengkap, dan Proteksi Sesi Terenkripsi.</strong>
+    <strong>Website E-Commerce Top Up Game Modern, Cepat, dan Aman dengan Integrasi Real-Time Database Supabase PostgreSQL, Integrasi API Akun Roblox, Admin Dashboard Lengkap, dan Proteksi Sesi Terenkripsi.</strong>
   </p>
 </div>
 
