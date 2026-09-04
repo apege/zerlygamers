@@ -1,7 +1,6 @@
 /**
- * High-performance In-Memory Server Cache for ZerlyGamers API routes.
- * Reduces roundtrip latency to Supabase from ~1000ms to < 2ms.
- * Automatically invalidates on mutations (POST/PATCH/DELETE).
+ * High-performance In-Memory Server Cache with Stale-While-Revalidate & Timeout Fallbacks.
+ * Prevents Supabase micro-instance hanging and statement timeout freezes.
  */
 
 type CacheEntry<T> = {
@@ -11,7 +10,7 @@ type CacheEntry<T> = {
 
 const cacheStore = new Map<string, CacheEntry<any>>();
 
-// Default TTL: 30 seconds (allows fast reads while preserving freshness)
+// Default TTL: 30 seconds
 const DEFAULT_TTL_MS = 30 * 1000;
 
 export function getCached<T>(key: string, ttlMs: number = DEFAULT_TTL_MS): T | null {
@@ -20,11 +19,18 @@ export function getCached<T>(key: string, ttlMs: number = DEFAULT_TTL_MS): T | n
 
   const now = Date.now();
   if (now - entry.timestamp > ttlMs) {
-    cacheStore.delete(key);
     return null;
   }
 
   return entry.data as T;
+}
+
+/**
+ * Returns data even if expired (used as resilient fallback during DB timeouts)
+ */
+export function getLastKnownData<T>(key: string): T | null {
+  const entry = cacheStore.get(key);
+  return entry ? (entry.data as T) : null;
 }
 
 export function setCached<T>(key: string, data: T): void {
@@ -44,5 +50,26 @@ export function invalidateCache(keyPrefix?: string): void {
     if (key.startsWith(keyPrefix)) {
       cacheStore.delete(key);
     }
+  }
+}
+
+/**
+ * Execute a promise with a maximum timeout (default 5000ms) to prevent statement timeouts.
+ */
+export async function withTimeout<T = any>(promise: PromiseLike<T> | Promise<T>, ms: number = 6000): Promise<T> {
+  let timeoutId: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Database query timed out after ${ms}ms`));
+    }, ms);
+  });
+
+  try {
+    const result = await Promise.race([Promise.resolve(promise), timeoutPromise]);
+    clearTimeout(timeoutId);
+    return result as T;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
 }
