@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,9 @@ const noCacheHeaders = {
   'CDN-Cache-Control': 'no-store',
   'Vercel-CDN-Cache-Control': 'no-store',
 };
+
+const ORDERS_CACHE_KEY = 'api_orders_list';
+const CUSTOMERS_CACHE_KEY = 'api_customers_list';
 
 // GET: Fetch all real orders or single order by token/code
 export async function GET(request: NextRequest) {
@@ -38,12 +42,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const cached = getCached<any[]>(ORDERS_CACHE_KEY, 10000);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const { data: orders, error } = await supabaseAdmin
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
+
+    setCached(ORDERS_CACHE_KEY, orders || []);
 
     return NextResponse.json(
       { success: true, data: orders || [] },
@@ -148,6 +162,9 @@ export async function POST(request: NextRequest) {
       throw new Error(error.message);
     }
 
+    invalidateCache(ORDERS_CACHE_KEY);
+    invalidateCache(CUSTOMERS_CACHE_KEY);
+
     return NextResponse.json(
       { success: true, data: result[0] },
       { status: 201, headers: noCacheHeaders }
@@ -208,6 +225,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    invalidateCache(ORDERS_CACHE_KEY);
+    invalidateCache(CUSTOMERS_CACHE_KEY);
+
     return NextResponse.json(
       { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
@@ -237,6 +257,9 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabaseAdmin.from('orders').delete().eq('id', Number(id));
 
     if (error) throw new Error(error.message);
+
+    invalidateCache(ORDERS_CACHE_KEY);
+    invalidateCache(CUSTOMERS_CACHE_KEY);
 
     return NextResponse.json(
       { success: true, message: 'Order deleted successfully' },

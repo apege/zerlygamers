@@ -24,8 +24,8 @@ export async function GET() {
     }
 
     const [{ data: orders }, { data: blacklists }] = await Promise.all([
-      supabaseAdmin.from('orders').select('*'),
-      supabaseAdmin.from('blacklists').select('*'),
+      supabaseAdmin.from('orders').select('roblox_username, roblox_user_id, customer_phone, price'),
+      supabaseAdmin.from('blacklists').select('roblox_username, roblox_user_id, phone, reason'),
     ]);
 
     const blacklistMap = new Map<string, any>();
