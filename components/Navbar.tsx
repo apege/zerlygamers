@@ -20,32 +20,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   whatsappNumber: initialWaNumber,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [storeName, setStoreName] = useState(initialStoreName || "Zerly Gamers");
-  const [logoPath, setLogoPath] = useState(initialLogoPath || "/logo.png");
-  const [whatsappNumber, setWhatsappNumber] = useState(initialWaNumber || "6285624595886");
-
-  useEffect(() => {
-    if (initialStoreName) setStoreName(initialStoreName);
-    if (initialLogoPath) setLogoPath(initialLogoPath);
-    if (initialWaNumber) setWhatsappNumber(initialWaNumber);
-  }, [initialStoreName, initialLogoPath, initialWaNumber]);
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.store_name) setStoreName(json.data.store_name);
-          if (json.data.logo_image_path) setLogoPath(json.data.logo_image_path);
-          if (json.data.whatsapp_number) setWhatsappNumber(json.data.whatsapp_number);
-        }
-      } catch (err) {
-        console.error("Failed to fetch store settings in Navbar:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
+  const storeName = initialStoreName || "Zerly Gamers";
+  const logoPath = initialLogoPath || "/logo.png";
+  const whatsappNumber = initialWaNumber || "6285624595886";
 
   const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
   const waContactLink = `https://wa.me/${cleanWa}?text=Halo%20Admin%20${encodeURIComponent(storeName)}%2C%20saya%20ingin%20bertanya%20seputar%20top%20up%20Robux.`;

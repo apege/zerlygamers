@@ -81,14 +81,12 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
                   : "bg-white border-2 border-pink-200/80 hover:border-pink-300 hover:bg-pink-50/30"
               }`}
             >
-              {/* BEST SELLER BADGE */}
               {isBestSeller && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FF2E88] to-[#FF4E98] text-white text-[8.5px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1 whitespace-nowrap">
                   <span>&lt; BEST SELLER &gt;</span>
                 </div>
               )}
 
-              {/* Title & Amount */}
               <div className="text-center pt-1">
                 <span
                   className={`text-[10.5px] font-black uppercase tracking-wider block ${
@@ -102,7 +100,6 @@ export const TopUpRobux: React.FC<TopUpRobuxProps> = ({
                 </span>
               </div>
 
-              {/* Robux Coin Graphic */}
               <div className="my-2.5 w-12 h-12 relative flex items-center justify-center">
                 <Image
                   src="/robux.webp"

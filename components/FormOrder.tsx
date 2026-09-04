@@ -131,7 +131,6 @@ export const FormOrder: React.FC<FormOrderProps> = ({
             </button>
           </div>
 
-          {/* Verified Account Banner */}
           {robloxUser && (
             <div className="bg-emerald-50/90 border border-emerald-300 rounded-2xl p-2.5 flex items-center gap-2.5 animate-in fade-in zoom-in-95 duration-200">
               <div className="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-300 overflow-hidden shrink-0 flex items-center justify-center">
