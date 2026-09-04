@@ -210,11 +210,14 @@ export default function AdminPage() {
   useEffect(() => {
     fetchOrders();
     fetchStats();
-    // Real-time live polling every 5 seconds
+
+    // Gentle polling for orders every 25 seconds when tab is visible
     const interval = setInterval(() => {
-      fetchOrders();
-      fetchStats();
-    }, 5000);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchOrders();
+      }
+    }, 25000);
+
     return () => clearInterval(interval);
   }, [fetchOrders, fetchStats]);
 
