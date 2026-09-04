@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,15 +10,19 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
-const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-};
+const SETTINGS_CACHE_KEY = 'api_store_settings';
 
 // GET: Fetch store settings
 export async function GET() {
   try {
+    const cached = getCached<any>(SETTINGS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const { data: settings, error } = await supabaseAdmin
       .from('store_settings')
       .select('*')
@@ -57,11 +62,15 @@ export async function GET() {
         throw new Error(initErr.message);
       }
 
+      setCached(SETTINGS_CACHE_KEY, initial[0]);
+
       return NextResponse.json(
         { success: true, data: initial[0] },
         { status: 200, headers: noCacheHeaders }
       );
     }
+
+    setCached(SETTINGS_CACHE_KEY, settings[0]);
 
     return NextResponse.json(
       { success: true, data: settings[0] },
@@ -142,6 +151,10 @@ export async function PATCH(request: NextRequest) {
       if (error) throw new Error(error.message);
       result = data[0];
     }
+
+    invalidateCache(SETTINGS_CACHE_KEY);
+    // Invalidate products cache as promo active status affects computed badges
+    invalidateCache('api_products_list');
 
     return NextResponse.json(
       { success: true, data: result },

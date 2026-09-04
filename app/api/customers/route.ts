@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,9 +10,19 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const CUSTOMERS_CACHE_KEY = 'api_customers_list';
+
 // GET: Aggregated customers from orders and blacklists
 export async function GET() {
   try {
+    const cached = getCached<any[]>(CUSTOMERS_CACHE_KEY, 15000);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const [{ data: orders }, { data: blacklists }] = await Promise.all([
       supabaseAdmin.from('orders').select('*'),
       supabaseAdmin.from('blacklists').select('*'),
@@ -68,6 +79,8 @@ export async function GET() {
     const customerList = Array.from(customerMap.values()).sort(
       (a, b) => b.total_spent_raw - a.total_spent_raw
     );
+
+    setCached(CUSTOMERS_CACHE_KEY, customerList);
 
     return NextResponse.json(
       { success: true, data: customerList },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,11 +10,7 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
-const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-};
+const TESTIMONIALS_CACHE_KEY = 'api_testimonials_list';
 
 // GET: Fetch all testimonials or check token existence
 export async function GET(request: NextRequest) {
@@ -44,12 +41,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const cached = getCached<any[]>(TESTIMONIALS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const { data: testimonials, error } = await supabaseAdmin
       .from('testimonials')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
+
+    setCached(TESTIMONIALS_CACHE_KEY, testimonials || []);
 
     return NextResponse.json(
       { success: true, data: testimonials || [] },
@@ -116,6 +123,8 @@ export async function POST(request: NextRequest) {
 
     if (error) throw new Error(error.message);
 
+    invalidateCache(TESTIMONIALS_CACHE_KEY);
+
     return NextResponse.json(
       { success: true, data: result[0] },
       { status: 201, headers: noCacheHeaders }
@@ -167,6 +176,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    invalidateCache(TESTIMONIALS_CACHE_KEY);
+
     return NextResponse.json(
       { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
@@ -196,6 +207,8 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabaseAdmin.from('testimonials').delete().eq('id', Number(id));
 
     if (error) throw new Error(error.message);
+
+    invalidateCache(TESTIMONIALS_CACHE_KEY);
 
     return NextResponse.json(
       { success: true, message: 'Testimonial deleted successfully' },

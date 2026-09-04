@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,15 +10,20 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
-const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-};
+const PRODUCTS_CACHE_KEY = 'api_products_list';
 
 // GET: Fetch all products with dynamic badges (POPULER, PROMO, SULTAN)
 export async function GET() {
   try {
+    // Check in-memory cache first (instant response)
+    const cached = getCached<any[]>(PRODUCTS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     // 1. Fetch products
     const { data: products, error: prodErr } = await supabaseAdmin
       .from('products')
@@ -54,6 +60,8 @@ export async function GET() {
         badge,
       };
     });
+
+    setCached(PRODUCTS_CACHE_KEY, productsWithBadges);
 
     return NextResponse.json(
       { success: true, data: productsWithBadges },
@@ -99,6 +107,8 @@ export async function POST(request: NextRequest) {
     if (error) {
       throw new Error(error.message);
     }
+
+    invalidateCache(PRODUCTS_CACHE_KEY);
 
     return NextResponse.json(
       { success: true, data: data[0] },
@@ -152,6 +162,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    invalidateCache(PRODUCTS_CACHE_KEY);
+
     return NextResponse.json(
       { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
@@ -183,6 +195,8 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       throw new Error(error.message);
     }
+
+    invalidateCache(PRODUCTS_CACHE_KEY);
 
     return NextResponse.json(
       { success: true, message: 'Product deleted successfully' },
