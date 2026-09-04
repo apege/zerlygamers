@@ -1,19 +1,21 @@
 import { RobuxPackage, Testimonial, PaymentMethod } from '@/types/landing';
 
 export const ROBUX_PACKAGES: RobuxPackage[] = [
-  { id: 1, amount: 80, priceFormatted: 'Rp 35.000', priceNumber: 35000 },
-  { id: 2, amount: 160, priceFormatted: 'Rp 65.000', priceNumber: 65000 },
-  { id: 3, amount: 240, priceFormatted: 'Rp 95.000', priceNumber: 95000, isBestSeller: true },
-  { id: 4, amount: 400, priceFormatted: 'Rp 145.000', priceNumber: 145000 },
-  { id: 5, amount: 800, priceFormatted: 'Rp 275.000', priceNumber: 275000 },
-  { id: 6, amount: 1700, priceFormatted: 'Rp 550.000', priceNumber: 550000 },
+  { id: 10, amount: 1800, priceFormatted: 'Rp 35.000', priceNumber: 35000 },
+  { id: 11, amount: 2200, priceFormatted: 'Rp 45.000', priceNumber: 45000, isBestSeller: true },
+  { id: 12, amount: 2700, priceFormatted: 'Rp 50.000', priceNumber: 50000 },
+  { id: 13, amount: 3200, priceFormatted: 'Rp 60.000', priceNumber: 60000 },
+  { id: 14, amount: 3700, priceFormatted: 'Rp 70.000', priceNumber: 70000 },
+  { id: 15, amount: 4300, priceFormatted: 'Rp 90.000', priceNumber: 90000 },
 ];
 
 export const ALL_ROBUX_PACKAGES: RobuxPackage[] = [
   ...ROBUX_PACKAGES,
-  { id: 7, amount: 2000, priceFormatted: 'Rp 645.000', priceNumber: 645000 },
-  { id: 8, amount: 4500, priceFormatted: 'Rp 1.420.000', priceNumber: 1420000 },
-  { id: 9, amount: 10000, priceFormatted: 'Rp 3.100.000', priceNumber: 3100000 },
+  { id: 16, amount: 5500, priceFormatted: 'Rp 100.000', priceNumber: 100000 },
+  { id: 17, amount: 11500, priceFormatted: 'Rp 200.000', priceNumber: 200000 },
+  { id: 18, amount: 10500, priceFormatted: 'Rp 300.000', priceNumber: 300000 },
+  { id: 19, amount: 20500, priceFormatted: 'Rp 400.000', priceNumber: 400000 },
+  { id: 20, amount: 30500, priceFormatted: 'Rp 500.000', priceNumber: 500000 },
 ];
 
 export const TESTIMONIALS: Testimonial[] = [
@@ -57,12 +59,4 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   { name: 'mandiri', color: 'bg-[#002D62]', logo: '/payments/mandiri.png' },
   { name: 'BNI', color: 'bg-[#005E6A]', logo: '/payments/bni.png' },
   { name: 'BRI', color: 'bg-[#00529C]', logo: '/payments/bri.png' },
-];
-
-export const AVAILABLE_GAMES = [
-  { id: 'roblox', name: 'Roblox - Robux' },
-  { id: 'mlbb', name: 'Mobile Legends - Diamonds' },
-  { id: 'ff', name: 'Free Fire - Diamonds' },
-  { id: 'valorant', name: 'Valorant - Points' },
-  { id: 'genshin', name: 'Genshin Impact - Genesis' },
 ];
