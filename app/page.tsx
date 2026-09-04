@@ -300,48 +300,6 @@ export default function ZerlyGamersPage() {
       ? `${robloxUser.displayName} (@${robloxUser.name})`
       : userId;
 
-    let uploadedProofUrl = details.proofUrl || null;
-
-    // Upload customer proof file if attached
-    if (details.proofFile) {
-      try {
-        const formData = new FormData();
-        formData.append("file", details.proofFile);
-        formData.append("type", "customer_payment_proof");
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const uploadData = await uploadRes.json();
-        if (uploadData.success && uploadData.url) {
-          uploadedProofUrl = uploadData.url;
-        }
-      } catch (uploadErr) {
-        console.error("Failed to upload payment proof:", uploadErr);
-      }
-    }
-
-    // Save order to live database via /api/orders
-    try {
-      await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_code: invoiceNumber,
-          roblox_username: userId,
-          customer_phone: details.whatsappNumber,
-          robux: selectedPackage.amount,
-          price: selectedPackage.priceNumber,
-          payment_method: "Website QRIS Otomatis",
-          roblox_user_id: robloxUser?.id ? String(robloxUser.id) : undefined,
-          customer_notes: details.notes,
-          payment_proof_path: uploadedProofUrl,
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to create order in DB:", err);
-    }
-
     const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
     const messageText = `Halo Admin ${storeName}, saya telah order di website:\n\n` +
       `*No Invoice:* ${invoiceNumber}\n` +
@@ -355,16 +313,60 @@ export default function ZerlyGamersPage() {
 
     const waUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(messageText)}`;
 
+    // Instant Feedback: immediately show success state and trigger WA
     setWebsiteInvoiceNumber(invoiceNumber);
     setWebsiteWaDirectLink(waUrl);
     setOrderSuccess(true);
 
-    // Attempt to open WhatsApp window (if not blocked by browser async popup guard)
     try {
       window.open(waUrl, "_blank");
     } catch {
-      // User can click the prominent direct button in modal
+      // Fallback: user can tap the prominent button in the modal
     }
+
+    // Process file upload and order creation in background
+    (async () => {
+      let uploadedProofUrl = details.proofUrl || null;
+
+      if (details.proofFile) {
+        try {
+          const formData = new FormData();
+          formData.append("file", details.proofFile);
+          formData.append("type", "customer_payment_proof");
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.success && uploadData.url) {
+            uploadedProofUrl = uploadData.url;
+          }
+        } catch (uploadErr) {
+          console.error("Failed to upload payment proof:", uploadErr);
+        }
+      }
+
+      try {
+        await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_code: invoiceNumber,
+            product_id: selectedPackage.id,
+            roblox_username: userId,
+            customer_phone: details.whatsappNumber,
+            robux: selectedPackage.amount,
+            price: selectedPackage.priceNumber,
+            payment_method: "Website QRIS Otomatis",
+            roblox_user_id: robloxUser?.id ? String(robloxUser.id) : undefined,
+            customer_notes: details.notes,
+            payment_proof_path: uploadedProofUrl,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to create order in DB:", err);
+      }
+    })();
   };
 
   return (
