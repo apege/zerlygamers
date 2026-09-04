@@ -1,9 +1,3 @@
-import { neon } from '@neondatabase/serverless';
+import { supabaseAdmin, supabase } from './supabase';
 
-const connectionString = process.env.DATABASE_URL || '';
-
-if (!connectionString) {
-  console.warn('⚠️ DATABASE_URL is not set. Database operations will fail.');
-}
-
-export const sql = neon(connectionString);
+export { supabaseAdmin, supabase };
