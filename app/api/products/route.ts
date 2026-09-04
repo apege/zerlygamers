@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -10,54 +9,43 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+};
+
 // GET: Fetch all products with dynamic badges (POPULER, PROMO, SULTAN)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 1. Fetch products
-    const products = await sql`
-      SELECT 
-        id,
-        name,
-        robux,
-        price,
-        is_active,
-        image_path,
-        created_at,
-        updated_at
-      FROM "public"."products"
-      ORDER BY robux ASC;
-    `;
+    const { data: products, error: prodErr } = await supabaseAdmin
+      .from('products')
+      .select('*')
+      .order('robux', { ascending: true });
+
+    if (prodErr) {
+      throw new Error(prodErr.message);
+    }
 
     // 2. Fetch promo settings
-    const settings = await sql`
-      SELECT promo_active, promo_robux_amount 
-      FROM "public"."store_settings" 
-      ORDER BY id ASC 
-      LIMIT 1;
-    `;
-    const promoActive = settings.length > 0 ? settings[0].promo_active : false;
-    const promoRobuxAmount = settings.length > 0 ? Number(settings[0].promo_robux_amount) : 2200;
+    const { data: settings } = await supabaseAdmin
+      .from('store_settings')
+      .select('promo_active, promo_robux_amount')
+      .limit(1);
 
-    // 3. Fetch most popular package from orders
-    const popularStats = await sql`
-      SELECT robux, COUNT(id)::int as total_orders
-      FROM "public"."orders"
-      GROUP BY robux
-      ORDER BY total_orders DESC
-      LIMIT 1;
-    `;
-    const mostPopularRobux = popularStats.length > 0 ? Number(popularStats[0].robux) : null;
-    const mostPopularCount = popularStats.length > 0 ? Number(popularStats[0].total_orders) : 0;
+    const promoActive = settings && settings.length > 0 ? settings[0].promo_active : false;
+    const promoRobuxAmount = settings && settings.length > 0 ? Number(settings[0].promo_robux_amount) : 2200;
 
-    // 4. Attach computed badge
-    const productsWithBadges = products.map((p: any) => {
+    // 3. Attach computed badge
+    const productsWithBadges = (products || []).map((p: any) => {
       let badge: 'POPULER' | 'PROMO' | 'SULTAN' | null = null;
 
       if (p.robux >= 10000) {
         badge = 'SULTAN';
       } else if (promoActive && p.robux === promoRobuxAmount) {
         badge = 'PROMO';
-      } else if (mostPopularRobux && p.robux === mostPopularRobux && mostPopularCount > 0) {
+      } else if (p.robux === 240) {
         badge = 'POPULER';
       }
 
@@ -69,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: productsWithBadges },
-      { status: 200, headers: noCacheHeaders }
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching products:', error);
@@ -84,7 +72,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, robux, price, is_active = true } = body;
+    const { name, robux, price, is_active = true, image_path = null } = body;
 
     if (!robux || !price) {
       return NextResponse.json(
@@ -95,27 +83,25 @@ export async function POST(request: NextRequest) {
 
     const productName = name || `${Number(robux).toLocaleString('id-ID')} Robux`;
 
-    const result = await sql`
-      INSERT INTO "public"."products" (
-        name,
-        robux,
-        price,
-        is_active,
-        created_at,
-        updated_at
-      ) VALUES (
-        ${productName},
-        ${robux},
-        ${price},
-        ${is_active},
-        NOW(),
-        NOW()
-      )
-      RETURNING *;
-    `;
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .insert([
+        {
+          name: productName,
+          robux: Number(robux),
+          price: Number(price),
+          is_active: Boolean(is_active),
+          image_path,
+        },
+      ])
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return NextResponse.json(
-      { success: true, data: result[0] },
+      { success: true, data: data[0] },
       { status: 201, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -131,7 +117,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, robux, price, is_active } = body;
+    const { id, name, robux, price, is_active, image_path } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -140,19 +126,26 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = await sql`
-      UPDATE "public"."products"
-      SET 
-        name = COALESCE(${name || null}, name),
-        robux = COALESCE(${robux || null}, robux),
-        price = COALESCE(${price || null}, price),
-        is_active = COALESCE(${is_active !== undefined ? is_active : null}, is_active),
-        updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *;
-    `;
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (name !== undefined) updateData.name = name;
+    if (robux !== undefined) updateData.robux = Number(robux);
+    if (price !== undefined) updateData.price = Number(price);
+    if (is_active !== undefined) updateData.is_active = Boolean(is_active);
+    if (image_path !== undefined) updateData.image_path = image_path;
 
-    if (updated.length === 0) {
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Product not found' },
         { status: 404, headers: noCacheHeaders }
@@ -160,7 +153,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, data: updated[0] },
+      { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -185,10 +178,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await sql`
-      DELETE FROM "public"."products"
-      WHERE id = ${id};
-    `;
+    const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return NextResponse.json(
       { success: true, message: 'Product deleted successfully' },

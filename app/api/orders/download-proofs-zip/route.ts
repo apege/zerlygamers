@@ -1,51 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 import fs from 'fs/promises';
 import path from 'path';
 import JSZip from 'jszip';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const filterExpiring = searchParams.get('expiring_only') === 'true';
 
-    let orders;
+    const { data: allProofs, error } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_code, roblox_username, robux, price, payment_proof_path, created_at')
+      .not('payment_proof_path', 'is', null)
+      .neq('payment_proof_path', '')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    const now = Date.now();
+    const dayMs = 86400000;
+
+    let orders = allProofs || [];
     if (filterExpiring) {
-      // Orders created between 83 and 90 days ago
-      orders = await sql`
-        SELECT 
-          id,
-          order_code,
-          roblox_username,
-          robux,
-          price,
-          payment_proof_path,
-          created_at
-        FROM "public"."orders"
-        WHERE payment_proof_path IS NOT NULL 
-          AND payment_proof_path != ''
-          AND created_at <= NOW() - INTERVAL '83 days'
-        ORDER BY created_at ASC;
-      `;
-    } else {
-      // All orders with payment proof
-      orders = await sql`
-        SELECT 
-          id,
-          order_code,
-          roblox_username,
-          robux,
-          price,
-          payment_proof_path,
-          created_at
-        FROM "public"."orders"
-        WHERE payment_proof_path IS NOT NULL 
-          AND payment_proof_path != ''
-        ORDER BY created_at DESC;
-      `;
+      orders = orders.filter((o) => {
+        const ageDays = Math.floor((now - new Date(o.created_at).getTime()) / dayMs);
+        return ageDays >= 83;
+      });
     }
 
     if (!orders || orders.length === 0) {
@@ -68,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     for (let i = 0; i < orders.length; i++) {
       const ord = orders[i];
-      const cleanCode = ord.order_code.replace(/[^a-zA-Z0-9_-]/g, '');
+      const cleanCode = (ord.order_code || `order_${i}`).replace(/[^a-zA-Z0-9_-]/g, '');
       const cleanUser = (ord.roblox_username || 'user').replace(/[^a-zA-Z0-9_-]/g, '');
       const proofPath = ord.payment_proof_path;
 
@@ -99,7 +82,6 @@ export async function GET(request: NextRequest) {
             zip.file(fileName, fileBuffer);
             fileCount++;
           } catch {
-            // If file missing on disk, log in manifest
             manifestList.push(`   [Peringatan: File fisik tidak ditemukan di ${relativePath}]`);
           }
         }
@@ -108,7 +90,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Add text manifest inside the zip
     zip.file('DAFTAR_PESANAN_ARSIP.txt', manifestList.join('\n'));
 
     const zipBuffer = await zip.generateAsync({

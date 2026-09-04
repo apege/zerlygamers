@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     const cleanUsername = username.trim();
 
-    // 1. Fetch user data from official Roblox API
+    // 1. Fetch user data from official Roblox API with cache
     const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
       method: "POST",
       headers: {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         usernames: [cleanUsername],
         excludeBannedUsers: false,
       }),
-      cache: "no-store",
+      next: { revalidate: 86400 }, // Cache on server for 24 hours
     });
 
     if (!userRes.ok) {
@@ -45,12 +45,12 @@ export async function POST(request: Request) {
 
     const user = userData.data[0];
 
-    // 2. Fetch avatar headshot thumbnail
+    // 2. Fetch avatar headshot thumbnail with cache
     let avatarUrl = "";
     try {
       const thumbRes = await fetch(
         `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png&isCircular=true`,
-        { cache: "no-store" }
+        { next: { revalidate: 86400 } }
       );
       if (thumbRes.ok) {
         const thumbData = await thumbRes.json();
@@ -62,15 +62,24 @@ export async function POST(request: Request) {
       // ignore thumbnail fetch failure fallback
     }
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        displayName: user.displayName,
-        avatarUrl,
+    return NextResponse.json(
+      {
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          displayName: user.displayName,
+          avatarUrl,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Vercel-CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Terjadi kesalahan saat memeriksa akun Roblox." },

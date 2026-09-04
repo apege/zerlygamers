@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -11,35 +10,67 @@ const noCacheHeaders = {
 };
 
 // GET: Aggregated customers from orders and blacklists
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const customers = await sql`
-      WITH order_stats AS (
-        SELECT 
-          roblox_username,
-          MAX(roblox_user_id) as roblox_user_id,
-          MAX(customer_phone) as customer_phone,
-          COUNT(id)::int as total_orders,
-          SUM(price)::bigint as total_spent_raw
-        FROM "public"."orders"
-        GROUP BY roblox_username
-      )
-      SELECT 
-        COALESCE(os.roblox_username, b.roblox_username) as username,
-        COALESCE(os.roblox_user_id, b.roblox_user_id) as roblox_user_id,
-        COALESCE(os.customer_phone, b.phone) as whatsapp_number,
-        COALESCE(os.total_orders, 0) as total_orders,
-        COALESCE(os.total_spent_raw, 0) as total_spent_raw,
-        CASE WHEN b.id IS NOT NULL THEN 'blacklist' ELSE 'aktif' END as status,
-        b.reason as blacklist_reason
-      FROM order_stats os
-      FULL OUTER JOIN "public"."blacklists" b 
-        ON LOWER(os.roblox_username) = LOWER(b.roblox_username)
-      ORDER BY total_spent_raw DESC;
-    `;
+    const [{ data: orders }, { data: blacklists }] = await Promise.all([
+      supabaseAdmin.from('orders').select('*'),
+      supabaseAdmin.from('blacklists').select('*'),
+    ]);
+
+    const blacklistMap = new Map<string, any>();
+    (blacklists || []).forEach((b) => {
+      blacklistMap.set(b.roblox_username.toLowerCase().replace('@', ''), b);
+    });
+
+    const customerMap = new Map<string, any>();
+
+    (orders || []).forEach((ord) => {
+      const cleanUser = (ord.roblox_username || '').replace('@', '').trim();
+      if (!cleanUser) return;
+      const key = cleanUser.toLowerCase();
+
+      if (!customerMap.has(key)) {
+        customerMap.set(key, {
+          username: `@${cleanUser}`,
+          roblox_user_id: ord.roblox_user_id || null,
+          whatsapp_number: ord.customer_phone || '-',
+          total_orders: 0,
+          total_spent_raw: 0,
+          status: blacklistMap.has(key) ? 'blacklist' : 'aktif',
+          blacklist_reason: blacklistMap.get(key)?.reason || null,
+        });
+      }
+
+      const item = customerMap.get(key);
+      item.total_orders += 1;
+      item.total_spent_raw += Number(ord.price || 0);
+      if (ord.roblox_user_id && !item.roblox_user_id) item.roblox_user_id = ord.roblox_user_id;
+      if (ord.customer_phone && ord.customer_phone !== 'WhatsApp Direct') item.whatsapp_number = ord.customer_phone;
+    });
+
+    // Also include blacklisted users who haven't ordered
+    (blacklists || []).forEach((b) => {
+      const cleanUser = b.roblox_username.replace('@', '').trim();
+      const key = cleanUser.toLowerCase();
+      if (!customerMap.has(key)) {
+        customerMap.set(key, {
+          username: `@${cleanUser}`,
+          roblox_user_id: b.roblox_user_id || null,
+          whatsapp_number: b.phone || '-',
+          total_orders: 0,
+          total_spent_raw: 0,
+          status: 'blacklist',
+          blacklist_reason: b.reason,
+        });
+      }
+    });
+
+    const customerList = Array.from(customerMap.values()).sort(
+      (a, b) => b.total_spent_raw - a.total_spent_raw
+    );
 
     return NextResponse.json(
-      { success: true, data: customers },
+      { success: true, data: customerList },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {

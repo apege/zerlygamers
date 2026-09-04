@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -11,53 +10,74 @@ const noCacheHeaders = {
 };
 
 // GET: Real financial metrics and payment mutations from orders table
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // 1. Fetch all paid/completed orders as mutations
-    const mutations = await sql`
-      SELECT 
-        o.id,
-        o.order_code,
-        o.roblox_username,
-        o.payment_method,
-        o.price,
-        o.robux,
-        o.payment_status,
-        o.order_status,
-        o.created_at,
-        CASE 
-          WHEN LOWER(o.payment_method) LIKE '%whatsapp%' OR LOWER(o.payment_method) LIKE '%wa%' THEN 'WHATSAPP'
-          ELSE 'WEBSITE'
-        END as channel
-      FROM "public"."orders" o
-      WHERE o.payment_status = 'paid' OR o.order_status = 'completed'
-      ORDER BY o.created_at DESC;
-    `;
+    const { data: allOrders, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .or('payment_status.eq.paid,order_status.eq.completed')
+      .order('created_at', { ascending: false });
 
-    // 2. Compute aggregate metrics
-    const stats = await sql`
-      SELECT 
-        COALESCE(COUNT(id), 0)::int as total_transactions,
-        COALESCE(SUM(price), 0)::bigint as total_revenue,
-        COALESCE(SUM(robux), 0)::bigint as total_robux_sold,
-        COALESCE(AVG(price), 0)::bigint as aov,
-        COALESCE(SUM(CASE WHEN LOWER(payment_method) NOT LIKE '%whatsapp%' AND LOWER(payment_method) NOT LIKE '%wa%' THEN price ELSE 0 END), 0)::bigint as website_revenue,
-        COALESCE(COUNT(CASE WHEN LOWER(payment_method) NOT LIKE '%whatsapp%' AND LOWER(payment_method) NOT LIKE '%wa%' THEN id ELSE NULL END), 0)::int as website_count,
-        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%whatsapp%' OR LOWER(payment_method) LIKE '%wa%' THEN price ELSE 0 END), 0)::bigint as whatsapp_revenue,
-        COALESCE(COUNT(CASE WHEN LOWER(payment_method) LIKE '%whatsapp%' OR LOWER(payment_method) LIKE '%wa%' THEN id ELSE NULL END), 0)::int as whatsapp_count
-      FROM "public"."orders"
-      WHERE payment_status = 'paid' OR order_status = 'completed';
-    `;
+    if (error) throw new Error(error.message);
 
-    const summary = stats[0] || {
-      total_transactions: 0,
-      total_revenue: 0,
-      total_robux_sold: 0,
-      aov: 0,
-      website_revenue: 0,
-      website_count: 0,
-      whatsapp_revenue: 0,
-      whatsapp_count: 0,
+    const paidOrders = allOrders || [];
+
+    const mutations = paidOrders.map((o) => {
+      const isWa =
+        (o.payment_method || '').toLowerCase().includes('whatsapp') ||
+        (o.payment_method || '').toLowerCase().includes('wa');
+      return {
+        id: o.id,
+        order_code: o.order_code,
+        roblox_username: o.roblox_username,
+        payment_method: o.payment_method,
+        price: o.price,
+        robux: o.robux,
+        payment_status: o.payment_status,
+        order_status: o.order_status,
+        created_at: o.created_at,
+        channel: isWa ? 'WHATSAPP' : 'WEBSITE',
+      };
+    });
+
+    let total_revenue = 0;
+    let total_robux_sold = 0;
+    let website_revenue = 0;
+    let website_count = 0;
+    let whatsapp_revenue = 0;
+    let whatsapp_count = 0;
+
+    paidOrders.forEach((o) => {
+      const p = Number(o.price || 0);
+      const r = Number(o.robux || 0);
+      const isWa =
+        (o.payment_method || '').toLowerCase().includes('whatsapp') ||
+        (o.payment_method || '').toLowerCase().includes('wa');
+
+      total_revenue += p;
+      total_robux_sold += r;
+
+      if (isWa) {
+        whatsapp_revenue += p;
+        whatsapp_count += 1;
+      } else {
+        website_revenue += p;
+        website_count += 1;
+      }
+    });
+
+    const total_transactions = paidOrders.length;
+    const aov = total_transactions > 0 ? Math.round(total_revenue / total_transactions) : 0;
+
+    const summary = {
+      total_transactions,
+      total_revenue,
+      total_robux_sold,
+      aov,
+      website_revenue,
+      website_count,
+      whatsapp_revenue,
+      whatsapp_count,
     };
 
     return NextResponse.json(

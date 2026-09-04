@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 import fs from 'fs/promises';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -15,49 +14,38 @@ const noCacheHeaders = {
 // GET: Check retention metrics (Total, Expiring in 7 days, Expired > 90 days)
 export async function GET() {
   try {
-    // 1. Total proofs count
-    const totalProofsResult = await sql`
-      SELECT COUNT(*)::int as count 
-      FROM "public"."orders" 
-      WHERE payment_proof_path IS NOT NULL AND payment_proof_path != '';
-    `;
+    const { data: ordersWithProof, error } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_code, roblox_username, payment_proof_path, created_at')
+      .not('payment_proof_path', 'is', null)
+      .neq('payment_proof_path', '');
 
-    // 2. Proofs expiring soon (Created between 83 and 90 days ago)
-    const expiringSoonResult = await sql`
-      SELECT 
-        id, 
-        order_code, 
-        roblox_username, 
-        created_at,
-        ROUND(EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400)::int as age_days
-      FROM "public"."orders"
-      WHERE payment_proof_path IS NOT NULL 
-        AND payment_proof_path != ''
-        AND created_at <= NOW() - INTERVAL '83 days'
-        AND created_at > NOW() - INTERVAL '90 days'
-      ORDER BY created_at ASC;
-    `;
+    if (error) throw new Error(error.message);
 
-    // 3. Proofs expired (> 90 days ago)
-    const expiredResult = await sql`
-      SELECT 
-        id, 
-        order_code, 
-        roblox_username, 
-        payment_proof_path,
-        created_at,
-        ROUND(EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400)::int as age_days
-      FROM "public"."orders"
-      WHERE payment_proof_path IS NOT NULL 
-        AND payment_proof_path != ''
-        AND created_at <= NOW() - INTERVAL '90 days'
-      ORDER BY created_at ASC;
-    `;
+    const now = Date.now();
+    const dayMs = 86400000;
 
-    // Auto-cleanup if there are any expired files older than 90 days
+    const allProofs = ordersWithProof || [];
+    const total_proofs_stored = allProofs.length;
+
+    const expiring_orders: any[] = [];
+    const expiredOrders: any[] = [];
+
+    allProofs.forEach((ord) => {
+      const createdMs = new Date(ord.created_at).getTime();
+      const ageDays = Math.floor((now - createdMs) / dayMs);
+
+      if (ageDays >= 90) {
+        expiredOrders.push({ ...ord, age_days: ageDays });
+      } else if (ageDays >= 83 && ageDays < 90) {
+        expiring_orders.push({ ...ord, age_days: ageDays });
+      }
+    });
+
+    // Auto-cleanup if any expired > 90 days
     let autoCleanedCount = 0;
-    if (expiredResult.length > 0) {
-      for (const ord of expiredResult) {
+    if (expiredOrders.length > 0) {
+      for (const ord of expiredOrders) {
         if (ord.payment_proof_path && ord.payment_proof_path.startsWith('/uploads/')) {
           try {
             const filePath = path.join(process.cwd(), 'public', ord.payment_proof_path.slice(1));
@@ -66,12 +54,13 @@ export async function GET() {
         }
       }
 
-      await sql`
-        UPDATE "public"."orders"
-        SET payment_proof_path = NULL, updated_at = NOW()
-        WHERE id = ANY(${expiredResult.map((o) => o.id)});
-      `;
-      autoCleanedCount = expiredResult.length;
+      const expiredIds = expiredOrders.map((o) => o.id);
+      await supabaseAdmin
+        .from('orders')
+        .update({ payment_proof_path: null, updated_at: new Date().toISOString() })
+        .in('id', expiredIds);
+
+      autoCleanedCount = expiredOrders.length;
     }
 
     return NextResponse.json(
@@ -80,9 +69,9 @@ export async function GET() {
         data: {
           retention_policy_days: 90,
           warning_threshold_days: 7, // starts at day 83
-          total_proofs_stored: totalProofsResult[0]?.count || 0,
-          expiring_soon_count: expiringSoonResult.length,
-          expiring_orders: expiringSoonResult,
+          total_proofs_stored,
+          expiring_soon_count: expiring_orders.length,
+          expiring_orders,
           cleaned_expired_count: autoCleanedCount,
         },
       },
@@ -100,13 +89,19 @@ export async function GET() {
 // POST: Manual trigger cleanup routine
 export async function POST(request: NextRequest) {
   try {
-    const expiredOrders = await sql`
-      SELECT id, order_code, payment_proof_path 
-      FROM "public"."orders"
-      WHERE payment_proof_path IS NOT NULL 
-        AND payment_proof_path != ''
-        AND created_at <= NOW() - INTERVAL '90 days';
-    `;
+    const { data: allProofs, error } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_code, payment_proof_path, created_at')
+      .not('payment_proof_path', 'is', null)
+      .neq('payment_proof_path', '');
+
+    if (error) throw new Error(error.message);
+
+    const now = Date.now();
+    const ninetyDaysMs = 90 * 86400000;
+    const expiredOrders = (allProofs || []).filter(
+      (o) => now - new Date(o.created_at).getTime() >= ninetyDaysMs
+    );
 
     let cleaned = 0;
     for (const ord of expiredOrders) {
@@ -120,15 +115,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (expiredOrders.length > 0) {
-      await sql`
-        UPDATE "public"."orders"
-        SET payment_proof_path = NULL, updated_at = NOW()
-        WHERE id = ANY(${expiredOrders.map((o) => o.id)});
-      `;
+      const expiredIds = expiredOrders.map((o) => o.id);
+      await supabaseAdmin
+        .from('orders')
+        .update({ payment_proof_path: null, updated_at: new Date().toISOString() })
+        .in('id', expiredIds);
     }
 
     return NextResponse.json(
-      { success: true, message: `Berhasil membersihkan ${cleaned} bukti transfer kedaluwarsa (> 90 hari).`, cleaned_count: cleaned },
+      {
+        success: true,
+        message: `Berhasil membersihkan ${cleaned} bukti transfer kedaluwarsa (> 90 hari).`,
+        cleaned_count: cleaned,
+      },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -18,32 +17,15 @@ export async function GET(request: NextRequest) {
 
     if (token) {
       const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
-      const order = await sql`
-        SELECT 
-          o.id,
-          o.order_code,
-          o.product_id,
-          o.user_id,
-          o.roblox_username,
-          o.customer_phone,
-          o.robux,
-          o.price,
-          o.payment_method,
-          o.payment_status,
-          o.payment_proof_path,
-          o.order_status,
-          o.created_at,
-          o.updated_at,
-          o.roblox_user_id,
-          o.customer_notes,
-          o.admin_notes,
-          o.expires_at
-        FROM "public"."orders" o
-        WHERE o.order_code ILIKE ${`%${cleanToken}%`}
-        LIMIT 1;
-      `;
+      const { data: order, error } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .ilike('order_code', `%${cleanToken}%`)
+        .limit(1);
 
-      if (order.length === 0) {
+      if (error) throw new Error(error.message);
+
+      if (!order || order.length === 0) {
         return NextResponse.json(
           { success: false, error: 'Order not found' },
           { status: 404, headers: noCacheHeaders }
@@ -56,32 +38,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const orders = await sql`
-      SELECT 
-        o.id,
-        o.order_code,
-        o.product_id,
-        o.user_id,
-        o.roblox_username,
-        o.customer_phone,
-        o.robux,
-        o.price,
-        o.payment_method,
-        o.payment_status,
-        o.payment_proof_path,
-        o.order_status,
-        o.created_at,
-        o.updated_at,
-        o.roblox_user_id,
-        o.customer_notes,
-        o.admin_notes,
-        o.expires_at
-      FROM "public"."orders" o
-      ORDER BY o.created_at DESC;
-    `;
+    const { data: orders, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json(
-      { success: true, data: orders },
+      { success: true, data: orders || [] },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -106,7 +71,7 @@ export async function POST(request: NextRequest) {
       product_id,
       payment_method = 'Website',
       payment_status,
-      order_status = 'masuk',
+      order_status = 'pending',
       roblox_user_id,
       customer_notes,
       payment_proof_path,
@@ -124,14 +89,14 @@ export async function POST(request: NextRequest) {
 
     // Check blacklist before creating order
     if (cleanPhone !== 'WhatsApp Direct') {
-      const isBlacklisted = await sql`
-        SELECT id FROM "public"."blacklists" 
-        WHERE LOWER(roblox_username) = LOWER(${cleanUsername.replace('@', '')}) 
-           OR phone = ${cleanPhone}
-        LIMIT 1;
-      `;
+      const rawUser = cleanUsername.replace('@', '');
+      const { data: blacklist } = await supabaseAdmin
+        .from('blacklists')
+        .select('id')
+        .or(`roblox_username.ilike.${rawUser},phone.eq.${cleanPhone}`)
+        .limit(1);
 
-      if (isBlacklisted.length > 0) {
+      if (blacklist && blacklist.length > 0) {
         return NextResponse.json(
           { success: false, error: 'Akun atau nomor ini terdaftar dalam blacklist toko.' },
           { status: 403, headers: noCacheHeaders }
@@ -147,7 +112,7 @@ export async function POST(request: NextRequest) {
     const isWhatsApp = payment_method.toLowerCase().includes('whatsapp') || payment_method.toLowerCase().includes('wa');
     const finalPaymentStatus = payment_status || (isWhatsApp ? 'pending' : 'paid');
 
-    // Normalize order_status to match PostgreSQL check constraint ('pending' | 'processing' | 'completed' | 'cancelled')
+    // Normalize order_status to match check constraint ('pending' | 'processing' | 'completed' | 'cancelled')
     let dbOrderStatus = 'pending';
     if (order_status === 'diproses' || order_status === 'proses' || order_status === 'processing') {
       dbOrderStatus = 'processing';
@@ -159,40 +124,29 @@ export async function POST(request: NextRequest) {
       dbOrderStatus = 'pending';
     }
 
-    const result = await sql`
-      INSERT INTO "public"."orders" (
-        order_code,
-        product_id,
-        roblox_username,
-        customer_phone,
-        robux,
-        price,
-        payment_method,
-        payment_status,
-        payment_proof_path,
-        order_status,
-        roblox_user_id,
-        customer_notes,
-        created_at,
-        updated_at
-      ) VALUES (
-        ${finalOrderCode},
-        ${product_id || null},
-        ${cleanUsername},
-        ${cleanPhone},
-        ${robux},
-        ${price},
-        ${payment_method},
-        ${finalPaymentStatus},
-        ${payment_proof_path || null},
-        ${dbOrderStatus},
-        ${roblox_user_id || null},
-        ${customer_notes || null},
-        NOW(),
-        NOW()
-      )
-      RETURNING *;
-    `;
+    const newOrderData = {
+      order_code: finalOrderCode,
+      product_id: product_id ? Number(product_id) : null,
+      roblox_username: cleanUsername,
+      customer_phone: cleanPhone,
+      robux: Number(robux),
+      price: Number(price),
+      payment_method,
+      payment_status: finalPaymentStatus,
+      payment_proof_path: payment_proof_path || null,
+      order_status: dbOrderStatus,
+      roblox_user_id: roblox_user_id || null,
+      customer_notes: customer_notes || null,
+    };
+
+    const { data: result, error } = await supabaseAdmin
+      .from('orders')
+      .insert([newOrderData])
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return NextResponse.json(
       { success: true, data: result[0] },
@@ -220,21 +174,34 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = await sql`
-      UPDATE "public"."orders"
-      SET 
-        order_status = COALESCE(${order_status || null}, order_status),
-        payment_status = COALESCE(${payment_status || null}, payment_status),
-        admin_notes = COALESCE(${admin_notes !== undefined ? admin_notes : null}, admin_notes),
-        roblox_username = COALESCE(${roblox_username || null}, roblox_username),
-        roblox_user_id = COALESCE(${roblox_user_id || null}, roblox_user_id),
-        payment_proof_path = COALESCE(${payment_proof_path || null}, payment_proof_path),
-        updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *;
-    `;
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
 
-    if (updated.length === 0) {
+    if (order_status !== undefined) {
+      let dbStatus = order_status;
+      if (order_status === 'diproses' || order_status === 'proses') dbStatus = 'processing';
+      else if (order_status === 'selesai') dbStatus = 'completed';
+      else if (order_status === 'dibatalkan' || order_status === 'batal') dbStatus = 'cancelled';
+      else if (order_status === 'masuk') dbStatus = 'pending';
+      updateData.order_status = dbStatus;
+    }
+
+    if (payment_status !== undefined) updateData.payment_status = payment_status;
+    if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+    if (roblox_username !== undefined) updateData.roblox_username = roblox_username;
+    if (roblox_user_id !== undefined) updateData.roblox_user_id = roblox_user_id;
+    if (payment_proof_path !== undefined) updateData.payment_proof_path = payment_proof_path;
+
+    const { data, error } = await supabaseAdmin
+      .from('orders')
+      .update(updateData)
+      .eq('id', id)
+      .select();
+
+    if (error) throw new Error(error.message);
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
         { status: 404, headers: noCacheHeaders }
@@ -242,7 +209,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, data: updated[0] },
+      { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -267,10 +234,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await sql`
-      DELETE FROM "public"."orders"
-      WHERE id = ${id};
-    `;
+    const { error } = await supabaseAdmin.from('orders').delete().eq('id', id);
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json(
       { success: true, message: 'Order deleted successfully' },

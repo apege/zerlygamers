@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
   'CDN-Cache-Control': 'no-store',
   'Vercel-CDN-Cache-Control': 'no-store',
+};
+
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
 };
 
 // GET: Fetch all testimonials or check token existence
@@ -18,25 +23,15 @@ export async function GET(request: NextRequest) {
 
     if (token) {
       const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
-      const existing = await sql`
-        SELECT 
-          id,
-          user_id,
-          name as username,
-          message as comment,
-          rating,
-          image_path,
-          status,
-          order_code as item_package,
-          admin_reply,
-          created_at,
-          updated_at
-        FROM "public"."testimonials"
-        WHERE order_code ILIKE ${`%${cleanToken}%`}
-        LIMIT 1;
-      `;
+      const { data: existing, error } = await supabaseAdmin
+        .from('testimonials')
+        .select('*')
+        .ilike('order_code', `%${cleanToken}%`)
+        .limit(1);
 
-      if (existing.length > 0) {
+      if (error) throw new Error(error.message);
+
+      if (existing && existing.length > 0) {
         return NextResponse.json(
           { success: true, has_reviewed: true, data: existing[0] },
           { status: 200, headers: noCacheHeaders }
@@ -49,26 +44,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const testimonials = await sql`
-      SELECT 
-        id,
-        user_id,
-        name as username,
-        message as comment,
-        rating,
-        image_path,
-        status,
-        order_code as item_package,
-        admin_reply,
-        created_at,
-        updated_at
-      FROM "public"."testimonials"
-      ORDER BY created_at DESC;
-    `;
+    const { data: testimonials, error } = await supabaseAdmin
+      .from('testimonials')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json(
-      { success: true, data: testimonials },
-      { status: 200, headers: noCacheHeaders }
+      { success: true, data: testimonials || [] },
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching testimonials:', error);
@@ -97,17 +82,17 @@ export async function POST(request: NextRequest) {
 
     // Check duplicate review by token if provided
     if (tokenToCheck) {
-      const existing = await sql`
-        SELECT id FROM "public"."testimonials"
-        WHERE order_code ILIKE ${`%${tokenToCheck}%`}
-        LIMIT 1;
-      `;
+      const { data: existing } = await supabaseAdmin
+        .from('testimonials')
+        .select('id')
+        .ilike('order_code', `%${tokenToCheck}%`)
+        .limit(1);
 
-      if (existing.length > 0) {
+      if (existing && existing.length > 0) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Kamu sudah pernah memberikan ulasan untuk pesanan ini! Setiap pesanan hanya dapat diulas 1 kali.' 
+          {
+            success: false,
+            error: 'Kamu sudah pernah memberikan ulasan untuk pesanan ini! Setiap pesanan hanya dapat diulas 1 kali.',
           },
           { status: 409, headers: noCacheHeaders }
         );
@@ -116,26 +101,20 @@ export async function POST(request: NextRequest) {
 
     const savedOrderCode = tokenToCheck ? `${order_code} • #${tokenToCheck}` : order_code;
 
-    const result = await sql`
-      INSERT INTO "public"."testimonials" (
-        name,
-        message,
-        rating,
-        order_code,
-        status,
-        created_at,
-        updated_at
-      ) VALUES (
-        ${cleanUsername},
-        ${message},
-        ${rating},
-        ${savedOrderCode},
-        ${status},
-        NOW(),
-        NOW()
-      )
-      RETURNING *;
-    `;
+    const { data: result, error } = await supabaseAdmin
+      .from('testimonials')
+      .insert([
+        {
+          name: cleanUsername,
+          message,
+          rating: Number(rating),
+          order_code: savedOrderCode,
+          status,
+        },
+      ])
+      .select();
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json(
       { success: true, data: result[0] },
@@ -163,20 +142,25 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = await sql`
-      UPDATE "public"."testimonials"
-      SET 
-        status = COALESCE(${status || null}, status),
-        admin_reply = COALESCE(${admin_reply !== undefined ? JSON.stringify(admin_reply) : null}::jsonb, admin_reply),
-        message = COALESCE(${message || null}, message),
-        rating = COALESCE(${rating || null}, rating),
-        order_code = COALESCE(${order_code || null}, order_code),
-        updated_at = NOW()
-      WHERE id = ${id}
-      RETURNING *;
-    `;
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
 
-    if (updated.length === 0) {
+    if (status !== undefined) updateData.status = status;
+    if (admin_reply !== undefined) updateData.admin_reply = admin_reply;
+    if (message !== undefined) updateData.message = message;
+    if (rating !== undefined) updateData.rating = Number(rating);
+    if (order_code !== undefined) updateData.order_code = order_code;
+
+    const { data, error } = await supabaseAdmin
+      .from('testimonials')
+      .update(updateData)
+      .eq('id', id)
+      .select();
+
+    if (error) throw new Error(error.message);
+
+    if (!data || data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Testimonial not found' },
         { status: 404, headers: noCacheHeaders }
@@ -184,7 +168,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, data: updated[0] },
+      { success: true, data: data[0] },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -209,10 +193,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await sql`
-      DELETE FROM "public"."testimonials"
-      WHERE id = ${id};
-    `;
+    const { error } = await supabaseAdmin.from('testimonials').delete().eq('id', id);
+
+    if (error) throw new Error(error.message);
 
     return NextResponse.json(
       { success: true, message: 'Testimonial deleted successfully' },

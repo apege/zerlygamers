@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -10,59 +9,63 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
-// GET: Fetch store settings
-export async function GET(request: NextRequest) {
-  try {
-    const settings = await sql`
-      SELECT * FROM "public"."store_settings" 
-      ORDER BY id ASC 
-      LIMIT 1;
-    `;
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+};
 
-    if (settings.length === 0) {
+// GET: Fetch store settings
+export async function GET() {
+  try {
+    const { data: settings, error } = await supabaseAdmin
+      .from('store_settings')
+      .select('*')
+      .order('id', { ascending: true })
+      .limit(1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!settings || settings.length === 0) {
       // Create initial settings if not present
-      const initial = await sql`
-        INSERT INTO "public"."store_settings" (
-          store_name,
-          whatsapp_number,
-          qris_image_path,
-          logo_image_path,
-          promo_active,
-          promo_tag,
-          promo_badge,
-          promo_title,
-          promo_subtitle,
-          promo_robux_amount,
-          promo_original_label,
-          promo_discount_price,
-          promo_end_date,
-          updated_at
-        ) VALUES (
-          'Zerly Gamers',
-          '6285624595886',
-          '/qris.jpeg',
-          '/logo.png',
-          true,
-          'PROMO SPESIAL BULAN INI',
-          'LIMITED STOCK',
-          'ROBUX BULAN INI',
-          'Top Up Robux Instant, Cepat, Legal, Aman & Bergaransi 100% Uang Kembali!',
-          2200,
-          '2.200 Robux',
-          45000,
-          '2026-10-01 06:59:00+07',
-          NOW()
-        ) RETURNING *;
-      `;
+      const defaultSettings = {
+        store_name: 'Zerly Gamers',
+        whatsapp_number: '6285624595886',
+        qris_image_path: '/qris.jpeg',
+        logo_image_path: '/logo.png',
+        banner_image_path: null,
+        promo_active: true,
+        promo_tag: 'PROMO SPESIAL BULAN INI',
+        promo_badge: 'LIMITED STOCK',
+        promo_title: 'ROBUX BULAN INI',
+        promo_subtitle: 'Top Up Robux Instant, Cepat, Legal, Aman & Bergaransi 100% Uang Kembali!',
+        promo_robux_amount: 2200,
+        promo_original_label: '2.000 Robux',
+        promo_discount_price: 45000,
+        promo_end_date: '2026-09-30T23:59:59.000Z',
+        admin_note: null,
+      };
+
+      const { data: initial, error: initErr } = await supabaseAdmin
+        .from('store_settings')
+        .insert([defaultSettings])
+        .select();
+
+      if (initErr) {
+        throw new Error(initErr.message);
+      }
+
       return NextResponse.json(
         { success: true, data: initial[0] },
-        { status: 200, headers: noCacheHeaders }
+        { status: 200, headers: edgeCacheHeaders }
       );
     }
 
     return NextResponse.json(
       { success: true, data: settings[0] },
-      { status: 200, headers: noCacheHeaders }
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching settings:', error);
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PATCH / POST: Update store settings
+// PATCH: Update store settings
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
@@ -82,6 +85,7 @@ export async function PATCH(request: NextRequest) {
       whatsapp_number,
       qris_image_path,
       logo_image_path,
+      banner_image_path,
       promo_active,
       promo_tag,
       promo_badge,
@@ -91,60 +95,56 @@ export async function PATCH(request: NextRequest) {
       promo_original_label,
       promo_discount_price,
       promo_end_date,
-      admin_notes,
+      admin_note,
     } = body;
 
-    const existing = await sql`SELECT id FROM "public"."store_settings" LIMIT 1;`;
+    const { data: existing } = await supabaseAdmin
+      .from('store_settings')
+      .select('id')
+      .limit(1);
 
-    let updated;
-    if (existing.length > 0) {
-      updated = await sql`
-        UPDATE "public"."store_settings"
-        SET 
-          store_name = COALESCE(${store_name || null}, store_name),
-          whatsapp_number = COALESCE(${whatsapp_number || null}, whatsapp_number),
-          qris_image_path = COALESCE(${qris_image_path || null}, qris_image_path),
-          logo_image_path = COALESCE(${logo_image_path || null}, logo_image_path),
-          promo_active = COALESCE(${promo_active !== undefined ? promo_active : null}, promo_active),
-          promo_tag = COALESCE(${promo_tag || null}, promo_tag),
-          promo_badge = COALESCE(${promo_badge || null}, promo_badge),
-          promo_title = COALESCE(${promo_title || null}, promo_title),
-          promo_subtitle = COALESCE(${promo_subtitle || null}, promo_subtitle),
-          promo_robux_amount = COALESCE(${promo_robux_amount || null}, promo_robux_amount),
-          promo_original_label = COALESCE(${promo_original_label || null}, promo_original_label),
-          promo_discount_price = COALESCE(${promo_discount_price || null}, promo_discount_price),
-          promo_end_date = COALESCE(${promo_end_date || null}, promo_end_date),
-          admin_notes = COALESCE(${admin_notes !== undefined ? admin_notes : null}, admin_notes),
-          updated_at = NOW()
-        WHERE id = ${existing[0].id}
-        RETURNING *;
-      `;
+    const payload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (store_name !== undefined) payload.store_name = store_name;
+    if (whatsapp_number !== undefined) payload.whatsapp_number = whatsapp_number;
+    if (qris_image_path !== undefined) payload.qris_image_path = qris_image_path;
+    if (logo_image_path !== undefined) payload.logo_image_path = logo_image_path;
+    if (banner_image_path !== undefined) payload.banner_image_path = banner_image_path;
+    if (promo_active !== undefined) payload.promo_active = Boolean(promo_active);
+    if (promo_tag !== undefined) payload.promo_tag = promo_tag;
+    if (promo_badge !== undefined) payload.promo_badge = promo_badge;
+    if (promo_title !== undefined) payload.promo_title = promo_title;
+    if (promo_subtitle !== undefined) payload.promo_subtitle = promo_subtitle;
+    if (promo_robux_amount !== undefined) payload.promo_robux_amount = Number(promo_robux_amount);
+    if (promo_original_label !== undefined) payload.promo_original_label = promo_original_label;
+    if (promo_discount_price !== undefined) payload.promo_discount_price = Number(promo_discount_price);
+    if (promo_end_date !== undefined) payload.promo_end_date = promo_end_date;
+    if (admin_note !== undefined) payload.admin_note = admin_note;
+
+    let result;
+    if (existing && existing.length > 0) {
+      const { data, error } = await supabaseAdmin
+        .from('store_settings')
+        .update(payload)
+        .eq('id', existing[0].id)
+        .select();
+
+      if (error) throw new Error(error.message);
+      result = data[0];
     } else {
-      updated = await sql`
-        INSERT INTO "public"."store_settings" (
-          store_name,
-          whatsapp_number,
-          qris_image_path,
-          logo_image_path,
-          promo_active,
-          promo_robux_amount,
-          promo_discount_price,
-          updated_at
-        ) VALUES (
-          ${store_name || 'Zerly Gamers'},
-          ${whatsapp_number || '6285624595886'},
-          ${qris_image_path || '/qris.jpeg'},
-          ${logo_image_path || '/logo.png'},
-          ${promo_active !== undefined ? promo_active : true},
-          ${promo_robux_amount || 2200},
-          ${promo_discount_price || 45000},
-          NOW()
-        ) RETURNING *;
-      `;
+      const { data, error } = await supabaseAdmin
+        .from('store_settings')
+        .insert([payload])
+        .select();
+
+      if (error) throw new Error(error.message);
+      result = data[0];
     }
 
     return NextResponse.json(
-      { success: true, data: updated[0] },
+      { success: true, data: result },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
