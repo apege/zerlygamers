@@ -105,9 +105,9 @@ export default function ZerlyGamersPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("/api/products");
+        const res = await fetch("/api/products", { cache: "no-store" });
         const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.success && Array.isArray(json.data)) {
           const active = json.data.filter((p: any) => p.is_active !== false);
           if (active.length > 0) {
             const mapped: RobuxPackage[] = active.map((p: any) => ({
@@ -137,9 +137,9 @@ export default function ZerlyGamersPage() {
   // 2. Fetch live testimonials with admin_reply from /api/testimonials
   const fetchTestimonials = useCallback(async () => {
     try {
-      const res = await fetch("/api/testimonials");
+      const res = await fetch("/api/testimonials", { cache: "no-store" });
       const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      if (json.success && Array.isArray(json.data)) {
         const approved = json.data.filter((t: any) => t.status === "approved" || !t.status);
         if (approved.length > 0) {
           const mapped: Testimonial[] = approved.map((t: any) => ({
