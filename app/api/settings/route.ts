@@ -59,13 +59,13 @@ export async function GET() {
 
       return NextResponse.json(
         { success: true, data: initial[0] },
-        { status: 200, headers: edgeCacheHeaders }
+        { status: 200, headers: noCacheHeaders }
       );
     }
 
     return NextResponse.json(
       { success: true, data: settings[0] },
-      { status: 200, headers: edgeCacheHeaders }
+      { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching settings:', error);

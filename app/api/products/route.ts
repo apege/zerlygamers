@@ -57,7 +57,7 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, data: productsWithBadges },
-      { status: 200, headers: edgeCacheHeaders }
+      { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching products:', error);
@@ -178,7 +178,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('products').delete().eq('id', Number(id));
 
     if (error) {
       throw new Error(error.message);

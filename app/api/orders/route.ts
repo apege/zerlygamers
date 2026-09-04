@@ -234,7 +234,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin.from('orders').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('orders').delete().eq('id', Number(id));
 
     if (error) throw new Error(error.message);
 

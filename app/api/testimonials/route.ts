@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: testimonials || [] },
-      { status: 200, headers: edgeCacheHeaders }
+      { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching testimonials:', error);
@@ -193,7 +193,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin.from('testimonials').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('testimonials').delete().eq('id', Number(id));
 
     if (error) throw new Error(error.message);
 
