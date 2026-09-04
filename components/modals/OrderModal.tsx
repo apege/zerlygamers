@@ -22,6 +22,8 @@ interface OrderModalProps {
   userId: string;
   robloxUser: RobloxUser | null;
   orderSuccess: boolean;
+  invoiceNumber?: string;
+  whatsappDirectUrl?: string;
   qrisImagePath?: string;
   storeName?: string;
   onConfirmOrder: (orderDetails: {
@@ -39,6 +41,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   userId,
   robloxUser,
   orderSuccess,
+  invoiceNumber,
+  whatsappDirectUrl,
   qrisImagePath,
   storeName = "Zerly Gamers",
   onConfirmOrder,
@@ -48,6 +52,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -86,12 +91,19 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return;
     }
     setErrorMsg("");
+    setIsSubmitting(true);
     onConfirmOrder({
       whatsappNumber,
       notes,
       proofFile,
       proofUrl: proofPreview,
     });
+  };
+
+  const handleOpenWaAgain = () => {
+    if (whatsappDirectUrl) {
+      window.open(whatsappDirectUrl, "_blank");
+    }
   };
 
   return (
@@ -113,37 +125,77 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           </div>
           <div>
             <h3 className="text-base font-black text-gray-900 uppercase tracking-wide">
-              PEMBAYARAN QRIS INSTAN
+              {orderSuccess ? "STATUS PESANAN WEBSITE" : "PEMBAYARAN QRIS INSTAN"}
             </h3>
-            <p className="text-xs text-gray-500">Scan QRIS &amp; upload bukti untuk proses otomatis</p>
+            <p className="text-xs text-gray-500">
+              {orderSuccess
+                ? "Bukti pembayaran tersimpan & terkirim ke sistem"
+                : "Scan QRIS & upload bukti untuk proses otomatis"}
+            </p>
           </div>
         </div>
 
         {orderSuccess ? (
-          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-6 text-center flex flex-col items-center gap-3 my-2 animate-in zoom-in-95 duration-200">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 animate-bounce" />
-            <div className="text-base font-black text-emerald-900">
-              Pesanan Berhasil Dikirim!
+          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-5 text-center flex flex-col items-center gap-3.5 my-1 animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 animate-bounce">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-            <p className="text-xs text-emerald-700 leading-relaxed max-w-sm">
-              Bukti pembayaran kamu telah diterima. Admin Zerly Gamers sedang memverifikasi dan mengirim Robux ke akun <strong>@{robloxUser ? robloxUser.name : userId}</strong>.
-            </p>
-            <div className="w-full bg-white rounded-xl p-3 border border-emerald-200 text-xs text-left flex flex-col gap-1 text-gray-700">
-              <div className="flex justify-between">
-                <span>No. WhatsApp:</span>
-                <span className="font-bold">{whatsappNumber}</span>
+
+            <div className="space-y-1">
+              <div className="text-lg font-black text-emerald-950">
+                Pesanan &amp; Bukti Berhasil Dikirim! 🎉
               </div>
-              <div className="flex justify-between">
-                <span>Total Bayar:</span>
-                <span className="font-bold text-[#FF1D7E]">{selectedPackage.priceFormatted}</span>
+              <p className="text-xs text-emerald-800 leading-relaxed max-w-sm mx-auto">
+                Bukti pembayaran kamu sudah masuk ke sistem dan WhatsApp Admin telah dibuka. Admin <strong className="text-emerald-950">{storeName}</strong> segera memproses Robux kamu!
+              </p>
+            </div>
+
+            <div className="w-full bg-white rounded-2xl p-4 border border-emerald-200 text-xs text-left flex flex-col gap-2 shadow-xs">
+              {invoiceNumber && (
+                <div className="flex justify-between items-center py-1 border-b border-emerald-100">
+                  <span className="text-gray-500 font-medium">No. Invoice</span>
+                  <span className="font-mono font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    {invoiceNumber}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center py-1 border-b border-emerald-100">
+                <span className="text-gray-500 font-medium">Akun Roblox</span>
+                <span className="font-bold text-gray-900">
+                  {robloxUser ? `${robloxUser.displayName} (@${robloxUser.name})` : userId}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-emerald-100">
+                <span className="text-gray-500 font-medium">Paket Item</span>
+                <span className="font-bold text-[#FF2E88]">
+                  {selectedPackage.amount} Robux
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Total Bayar</span>
+                <span className="font-black text-[#FF1D7E] text-sm">{selectedPackage.priceFormatted}</span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="mt-2 w-full bg-[#059669] hover:bg-[#047857] text-white font-bold py-2.5 rounded-full text-xs uppercase cursor-pointer"
-            >
-              Selesai &amp; Tutup
-            </button>
+
+            <div className="w-full flex flex-col gap-2 pt-1">
+              {whatsappDirectUrl && (
+                <button
+                  type="button"
+                  onClick={handleOpenWaAgain}
+                  className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:opacity-95 text-white font-black py-3 px-4 rounded-2xl text-xs uppercase tracking-wide shadow-md shadow-emerald-500/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Buka Chat WhatsApp Admin 💬</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full bg-white hover:bg-emerald-100/50 text-emerald-800 border border-emerald-300 font-bold py-2.5 rounded-2xl text-xs uppercase transition-colors cursor-pointer"
+              >
+                Selesai &amp; Tutup
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -69,6 +69,10 @@ export default function ZerlyGamersPage() {
   const [waInvoiceNumber, setWaInvoiceNumber] = useState("");
   const [waDirectLink, setWaDirectLink] = useState("");
 
+  // Website Order Success Modal State
+  const [websiteInvoiceNumber, setWebsiteInvoiceNumber] = useState("");
+  const [websiteWaDirectLink, setWebsiteWaDirectLink] = useState("");
+
   // Promo Banner State from Settings
   const [promoData, setPromoData] = useState<{
     isActive: boolean;
@@ -287,7 +291,6 @@ export default function ZerlyGamersPage() {
     proofFile: File | null;
     proofUrl: string | null;
   }) => {
-    setOrderSuccess(true);
     const invoiceNumber = `#ZLY${Math.floor(10000000 + Math.random() * 90000000)}`;
     const displayAccount = robloxUser
       ? `${robloxUser.displayName} (@${robloxUser.name})`
@@ -320,6 +323,7 @@ export default function ZerlyGamersPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          order_code: invoiceNumber,
           roblox_username: userId,
           customer_phone: details.whatsappNumber,
           robux: selectedPackage.amount,
@@ -345,26 +349,44 @@ export default function ZerlyGamersPage() {
       `*Metode Pembayaran:* QRIS Otomatis Website%0A%0A` +
       `Mohon segera dicek & dikirim Robux-nya ya kak. Terima kasih! 💖`;
 
-    setTimeout(() => {
-      window.open(`https://wa.me/${cleanWa}?text=${message}`, "_blank");
-    }, 1500);
+    const waUrl = `https://wa.me/${cleanWa}?text=${message}`;
+
+    setWebsiteInvoiceNumber(invoiceNumber);
+    setWebsiteWaDirectLink(waUrl);
+    setOrderSuccess(true);
+
+    // Open WhatsApp in new window immediately
+    try {
+      window.open(waUrl, "_blank");
+    } catch {
+      // ignore popup blocker error fallback
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start text-[#333] relative overflow-x-hidden">
       {/* Background Floating Cute Gamer Elements */}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-12 left-10 text-pink-300/40 text-4xl animate-float-slow">💖</div>
-        <div className="absolute top-48 right-16 text-pink-300/40 text-3xl animate-sparkle">✨</div>
-        <div className="absolute top-[40%] left-6 text-pink-300/40 text-2xl animate-float-slow">⭐</div>
-        <div className="absolute top-[65%] right-10 text-pink-300/30 text-4xl animate-sparkle">🌸</div>
-        <div className="absolute -top-20 -left-20 w-96 h-96 bg-pink-200/40 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 -right-20 w-96 h-96 bg-rose-200/35 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-[8%] left-[4%] text-pink-300/40 text-3xl font-black rotate-12 animate-pulse select-none">
+          ★
+        </div>
+        <div className="absolute top-[22%] right-[5%] text-pink-300/30 text-4xl font-black -rotate-12 animate-bounce select-none">
+          ✦
+        </div>
+        <div className="absolute top-[48%] left-[2%] text-pink-300/35 text-2xl font-black rotate-45 select-none">
+          💖
+        </div>
+        <div className="absolute top-[65%] right-[3%] text-pink-300/40 text-3xl font-black rotate-12 select-none">
+          🎮
+        </div>
+        <div className="absolute top-[85%] left-[6%] text-pink-300/30 text-4xl font-black -rotate-6 select-none">
+          🌸
+        </div>
       </div>
 
-      {/* Main Content Container Landmark */}
-      <main id="main-content" className="w-full max-w-[1240px] px-3 sm:px-6 py-4 flex flex-col gap-4 z-10">
-        {/* Section 1: Navigation Bar */}
+      {/* Main Container */}
+      <main className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-3 sm:py-6 flex flex-col gap-6 sm:gap-8 z-10">
+        {/* 1. Header / Navbar */}
         <Navbar
           onOpenCaraOrder={() => setShowCaraOrderModal(true)}
           onOpenFaq={() => setShowFaqModal(true)}
@@ -373,20 +395,25 @@ export default function ZerlyGamersPage() {
           whatsappNumber={whatsappNumber}
         />
 
-        {/* Section 2: Hero Section */}
+        {/* 2. Hero Section (Banner Promo & Cute Character Mascot) */}
         <HeroSection
           onOpenAllPackages={() => setShowAllPackagesModal(true)}
           promoData={promoData || undefined}
-          onSelectPromoPackage={(amount) => {
+          onSelectPromoPackage={(amount: number) => {
             const found = allPackages.find((p) => p.amount === amount);
             if (found) {
               setSelectedPackage(found);
             }
+            const formElem = document.getElementById("form-order");
+            if (formElem) {
+              formElem.scrollIntoView({ behavior: "smooth" });
+            }
           }}
         />
 
-        {/* Section 3: Main Product & Order Grid */}
-        <section id="topup" aria-label="Katalog Paket dan Form Pemesanan Robux" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
+        {/* 3. Main Action Grid: Pricelist Packages & Order Form */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+          {/* Left Column: Robux Pricelist Grid (7 cols) */}
           <TopUpRobux
             packages={packages}
             selectedPackage={selectedPackage}
@@ -394,14 +421,15 @@ export default function ZerlyGamersPage() {
             onOpenAllPackages={() => setShowAllPackagesModal(true)}
           />
 
+          {/* Right Column: Interactive Order Form (5 cols) */}
           <FormOrder
             selectedPackage={selectedPackage}
             onSelectPackage={handleSelectPackage}
             allPackages={allPackages}
             userId={userId}
-            onUserIdChange={(val) => {
+            onUserIdChange={(val: string) => {
               setUserId(val);
-              if (formError) setFormError("");
+              setFormError("");
             }}
             robloxUser={robloxUser}
             onRobloxUserChange={setRobloxUser}
@@ -410,10 +438,10 @@ export default function ZerlyGamersPage() {
             formError={formError}
             onSubmit={handleOpenOrder}
           />
-        </section>
+        </div>
 
-        {/* Section 4: Why Choose Us & Testimonials (Compact, items-start to prevent vertical stretching) */}
-        <section aria-label="Keunggulan dan Testimoni Pelanggan" className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 items-start relative z-20">
+        {/* 4. Social Proof Grid: Why Choose Us & Testimonials (12 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
           <WhyChooseUs />
           <Testimonials
             testimonials={testimonials}
@@ -422,10 +450,10 @@ export default function ZerlyGamersPage() {
             onNext={handleNextTestimonial}
             onOpenFaq={() => setShowFaqModal(true)}
           />
-        </section>
+        </div>
 
-        {/* Section 5: Payment Footer */}
-        <div className="relative z-20">
+        {/* 5. Payment Methods & Dynamic Footer */}
+        <div className="mt-2">
           <PaymentFooter
             paymentMethods={PAYMENT_METHODS}
             storeName={storeName}
@@ -444,6 +472,8 @@ export default function ZerlyGamersPage() {
         userId={userId}
         robloxUser={robloxUser}
         orderSuccess={orderSuccess}
+        invoiceNumber={websiteInvoiceNumber}
+        whatsappDirectUrl={websiteWaDirectLink}
         qrisImagePath={qrisImagePath}
         storeName={storeName}
         onConfirmOrder={handleConfirmOrder}
