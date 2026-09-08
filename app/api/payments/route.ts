@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,12 +10,22 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const PAYMENTS_CACHE_KEY = 'api_payments_metrics';
+
 // GET: Real financial metrics and payment mutations from orders table
 export async function GET() {
   try {
+    const cached = getCached<any>(PAYMENTS_CACHE_KEY, 15000);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const { data: allOrders, error } = await supabaseAdmin
       .from('orders')
-      .select('*')
+      .select('id, order_code, roblox_username, payment_method, price, robux, payment_status, order_status, created_at')
       .or('payment_status.eq.paid,order_status.eq.completed')
       .order('created_at', { ascending: false });
 
@@ -80,13 +91,17 @@ export async function GET() {
       whatsapp_count,
     };
 
+    const responseData = {
+      mutations,
+      summary,
+    };
+
+    setCached(PAYMENTS_CACHE_KEY, responseData);
+
     return NextResponse.json(
       {
         success: true,
-        data: {
-          mutations,
-          summary,
-        },
+        data: responseData,
       },
       { status: 200, headers: noCacheHeaders }
     );

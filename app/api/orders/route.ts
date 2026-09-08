@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const { data: orders, error } = await withTimeout<{ data: any[] | null; error: any }>(
       supabaseAdmin
         .from('orders')
-        .select('*')
+        .select('id, order_code, product_id, roblox_username, customer_phone, robux, price, payment_method, payment_status, order_status, roblox_user_id, customer_notes, payment_proof_path, admin_notes, created_at, updated_at')
         .order('created_at', { ascending: false })
         .limit(200),
       5000
@@ -178,6 +178,7 @@ export async function POST(request: NextRequest) {
 
     invalidateCache(ORDERS_CACHE_KEY);
     invalidateCache(CUSTOMERS_CACHE_KEY);
+    invalidateCache('api_payments_metrics');
 
     return NextResponse.json(
       { success: true, data: result[0] },
@@ -241,6 +242,7 @@ export async function PATCH(request: NextRequest) {
 
     invalidateCache(ORDERS_CACHE_KEY);
     invalidateCache(CUSTOMERS_CACHE_KEY);
+    invalidateCache('api_payments_metrics');
 
     return NextResponse.json(
       { success: true, data: data[0] },
@@ -274,6 +276,7 @@ export async function DELETE(request: NextRequest) {
 
     invalidateCache(ORDERS_CACHE_KEY);
     invalidateCache(CUSTOMERS_CACHE_KEY);
+    invalidateCache('api_payments_metrics');
 
     return NextResponse.json(
       { success: true, message: 'Order deleted successfully' },

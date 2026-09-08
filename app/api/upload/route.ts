@@ -37,31 +37,33 @@ export async function POST(request: NextRequest) {
     const rawBytes = await file.arrayBuffer();
     const rawBuffer = Buffer.from(rawBytes);
 
-    // Compress image using Sharp to WebP with max 1200px (typically 20KB - 60KB)
+    // Compress image using Sharp to WebP with max 1000px and strip metadata (typically 15KB - 30KB)
     let optimizedBuffer = rawBuffer;
-    let contentType = file.type;
+    let contentType = 'image/webp';
     const fileExt = '.webp';
 
     try {
       optimizedBuffer = await sharp(rawBuffer)
-        .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 75 })
+        .rotate() // Auto-rotate according to EXIF
+        .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 70, effort: 4 })
         .toBuffer();
-      contentType = 'image/webp';
     } catch (sharpErr) {
       console.warn('Sharp compression fallback to raw buffer:', sharpErr);
+      contentType = file.type;
     }
 
     const cleanPrefix = type.toLowerCase().replace(/[^a-z0-9]/g, '');
     const filename = `${cleanPrefix}-${Date.now()}${fileExt}`;
 
-    // 1. Attempt Supabase Storage Upload to bucket 'proofs'
+    // 1. Attempt Supabase Storage Upload to bucket 'proofs' with 1-year CDN caching
     try {
       const { data: uploadData, error: uploadErr } = await supabaseAdmin
         .storage
         .from('proofs')
         .upload(filename, optimizedBuffer, {
           contentType,
+          cacheControl: '31536000, public',
           upsert: true,
         });
 

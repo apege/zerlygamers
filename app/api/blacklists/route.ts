@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,15 +10,27 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const BLACKLISTS_CACHE_KEY = 'api_blacklists_list';
+
 // GET: Fetch all blacklists
 export async function GET() {
   try {
+    const cached = getCached<any[]>(BLACKLISTS_CACHE_KEY, 30000);
+    if (cached) {
+      return NextResponse.json(
+        { success: true, data: cached },
+        { status: 200, headers: noCacheHeaders }
+      );
+    }
+
     const { data: blacklists, error } = await supabaseAdmin
       .from('blacklists')
-      .select('*')
+      .select('id, roblox_username, reason, roblox_user_id, phone, created_at')
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
+
+    setCached(BLACKLISTS_CACHE_KEY, blacklists || []);
 
     return NextResponse.json(
       { success: true, data: blacklists || [] },
@@ -64,6 +77,9 @@ export async function POST(request: NextRequest) {
 
     if (error) throw new Error(error.message);
 
+    invalidateCache(BLACKLISTS_CACHE_KEY);
+    invalidateCache('api_customers_list');
+
     return NextResponse.json(
       { success: true, data: data[0] },
       { status: 201, headers: noCacheHeaders }
@@ -101,6 +117,9 @@ export async function DELETE(request: NextRequest) {
 
     const { error } = await query;
     if (error) throw new Error(error.message);
+
+    invalidateCache(BLACKLISTS_CACHE_KEY);
+    invalidateCache('api_customers_list');
 
     return NextResponse.json(
       { success: true, message: 'Blacklist removed successfully' },

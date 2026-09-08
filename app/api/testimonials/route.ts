@@ -10,6 +10,12 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=120',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=120',
+};
+
 const TESTIMONIALS_CACHE_KEY = 'api_testimonials_list';
 
 // GET: Fetch all testimonials or check token existence
@@ -22,7 +28,7 @@ export async function GET(request: NextRequest) {
       const cleanToken = token.replace(/[^a-zA-Z0-9]/g, '');
       const { data: existing, error } = await supabaseAdmin
         .from('testimonials')
-        .select('*')
+        .select('id, name, order_code, rating, message, admin_reply, status, created_at')
         .ilike('order_code', `%${cleanToken}%`)
         .limit(1);
 
@@ -41,17 +47,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const cached = getCached<any[]>(TESTIMONIALS_CACHE_KEY);
+    const cached = getCached<any[]>(TESTIMONIALS_CACHE_KEY, 30000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },
-        { status: 200, headers: noCacheHeaders }
+        { status: 200, headers: edgeCacheHeaders }
       );
     }
 
     const { data: testimonials, error } = await supabaseAdmin
       .from('testimonials')
-      .select('*')
+      .select('id, name, message, rating, order_code, admin_reply, status, created_at')
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
@@ -60,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: testimonials || [] },
-      { status: 200, headers: noCacheHeaders }
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching testimonials:', error);

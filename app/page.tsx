@@ -109,7 +109,7 @@ export default function ZerlyGamersPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("/api/products", { cache: "no-store" });
+        const res = await fetch("/api/products");
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           const active = json.data.filter((p: any) => p.is_active !== false);
@@ -141,7 +141,7 @@ export default function ZerlyGamersPage() {
   // 2. Fetch live testimonials with admin_reply from /api/testimonials
   const fetchTestimonials = useCallback(async () => {
     try {
-      const res = await fetch("/api/testimonials", { cache: "no-store" });
+      const res = await fetch("/api/testimonials");
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const approved = json.data.filter((t: any) => t.status === "approved" || !t.status);
@@ -170,7 +170,7 @@ export default function ZerlyGamersPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
+        const res = await fetch("/api/settings");
         const json = await res.json();
         if (json.success && json.data) {
           const s = json.data;

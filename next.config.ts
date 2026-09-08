@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.rbxcdn.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/**",
+      },
     ],
   },
   async headers() {

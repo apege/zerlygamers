@@ -10,24 +10,30 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=600',
+  'CDN-Cache-Control': 'public, s-maxage=180',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=180',
+};
+
 const PRODUCTS_CACHE_KEY = 'api_products_list';
 
 // GET: Fetch all products with dynamic badges (POPULER, PROMO, SULTAN)
 export async function GET() {
   try {
     // Check in-memory cache first (instant response)
-    const cached = getCached<any[]>(PRODUCTS_CACHE_KEY);
+    const cached = getCached<any[]>(PRODUCTS_CACHE_KEY, 60000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },
-        { status: 200, headers: noCacheHeaders }
+        { status: 200, headers: edgeCacheHeaders }
       );
     }
 
-    // 1. Fetch products
+    // 1. Fetch products with specific required fields
     const { data: products, error: prodErr } = await supabaseAdmin
       .from('products')
-      .select('*')
+      .select('id, name, robux, price, is_active, image_path, created_at')
       .order('robux', { ascending: true });
 
     if (prodErr) {
@@ -65,7 +71,7 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, data: productsWithBadges },
-      { status: 200, headers: noCacheHeaders }
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching products:', error);

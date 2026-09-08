@@ -10,22 +10,28 @@ const noCacheHeaders = {
   'Vercel-CDN-Cache-Control': 'no-store',
 };
 
+const edgeCacheHeaders = {
+  'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=600',
+  'CDN-Cache-Control': 'public, s-maxage=180',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=180',
+};
+
 const SETTINGS_CACHE_KEY = 'api_store_settings';
 
 // GET: Fetch store settings
 export async function GET() {
   try {
-    const cached = getCached<any>(SETTINGS_CACHE_KEY);
+    const cached = getCached<any>(SETTINGS_CACHE_KEY, 60000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },
-        { status: 200, headers: noCacheHeaders }
+        { status: 200, headers: edgeCacheHeaders }
       );
     }
 
     const { data: settings, error } = await supabaseAdmin
       .from('store_settings')
-      .select('*')
+      .select('id, store_name, whatsapp_number, qris_image_path, logo_image_path, banner_image_path, promo_active, promo_tag, promo_badge, promo_title, promo_subtitle, promo_robux_amount, promo_original_label, promo_discount_price, promo_end_date, admin_note')
       .order('id', { ascending: true })
       .limit(1);
 
@@ -66,7 +72,7 @@ export async function GET() {
 
       return NextResponse.json(
         { success: true, data: initial[0] },
-        { status: 200, headers: noCacheHeaders }
+        { status: 200, headers: edgeCacheHeaders }
       );
     }
 
@@ -74,7 +80,7 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, data: settings[0] },
-      { status: 200, headers: noCacheHeaders }
+      { status: 200, headers: edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching settings:', error);
