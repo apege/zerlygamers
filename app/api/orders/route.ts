@@ -53,21 +53,34 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: orders, error } = await withTimeout<{ data: any[] | null; error: any }>(
+    const { data: rawOrders, error } = await withTimeout<{ data: any[] | null; error: any }>(
       supabaseAdmin
         .from('orders')
         .select('id, order_code, product_id, roblox_username, customer_phone, robux, price, payment_method, payment_status, order_status, roblox_user_id, customer_notes, payment_proof_path, admin_notes, created_at, updated_at')
         .order('created_at', { ascending: false })
         .limit(200),
-      5000
+      10000
     );
 
     if (error) throw new Error(error.message);
 
-    setCached(ORDERS_CACHE_KEY, orders || []);
+    // Defensive mapping: ensure any legacy oversized raw base64 strings don't crash Worker memory
+    const orders = (rawOrders || []).map((ord) => {
+      let proof = ord.payment_proof_path;
+      if (proof && proof.startsWith('data:image/') && proof.length > 5000) {
+        // If it's a huge un-migrated base64, keep a short placeholder so list payload stays tiny
+        proof = proof.slice(0, 100) + '...';
+      }
+      return {
+        ...ord,
+        payment_proof_path: proof,
+      };
+    });
+
+    setCached(ORDERS_CACHE_KEY, orders);
 
     return NextResponse.json(
-      { success: true, data: orders || [] },
+      { success: true, data: orders },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
@@ -80,8 +93,8 @@ export async function GET(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch orders' },
-      { status: 500, headers: noCacheHeaders }
+      { success: false, error: error.message || 'Failed to fetch orders', data: [] },
+      { status: 200, headers: noCacheHeaders }
     );
   }
 }
