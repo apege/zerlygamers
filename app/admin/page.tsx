@@ -211,12 +211,12 @@ export default function AdminPage() {
     fetchOrders();
     fetchStats();
 
-    // Gentle polling for orders every 60 seconds when tab is visible
+    // Gentle polling for orders every 2 minutes when tab is visible
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchOrders();
       }
-    }, 60000);
+    }, 120000);
 
     return () => clearInterval(interval);
   }, [fetchOrders, fetchStats]);

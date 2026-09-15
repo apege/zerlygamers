@@ -2,8 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 31536000,
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -35,13 +34,13 @@ const nextConfig: NextConfig = {
             value: "public, max-age=31536000, immutable",
           },
           {
-            key: "Vercel-CDN-Cache-Control",
+            key: "Cloudflare-CDN-Cache-Control",
             value: "public, max-age=31536000, immutable",
           },
         ],
       },
       {
-        // 2. Cache uploaded proofs and QRIS images on edge
+        // 3. Cache uploaded proofs and QRIS images on edge
         source: "/uploads/:path*",
         headers: [
           {
@@ -53,7 +52,7 @@ const nextConfig: NextConfig = {
             value: "public, max-age=2592000, stale-while-revalidate=86400",
           },
           {
-            key: "Vercel-CDN-Cache-Control",
+            key: "Cloudflare-CDN-Cache-Control",
             value: "public, max-age=2592000, stale-while-revalidate=86400",
           },
         ],
