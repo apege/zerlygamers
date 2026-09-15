@@ -1,8 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
+
+function getExtension(mimeType: string, originalName?: string): string {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    case 'image/webp':
+      return '.webp';
+    case 'image/gif':
+      return '.gif';
+    case 'image/svg+xml':
+      return '.svg';
+    default:
+      if (originalName && originalName.includes('.')) {
+        return '.' + originalName.split('.').pop()?.toLowerCase();
+      }
+      return '.png';
+  }
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate size (max 10MB before compression)
+    // Validate size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         { success: false, error: 'Ukuran file terlalu besar! Maksimal 10MB.' },
@@ -35,34 +64,17 @@ export async function POST(request: NextRequest) {
     }
 
     const rawBytes = await file.arrayBuffer();
-    const rawBuffer = Buffer.from(rawBytes);
-
-    // Compress image using Sharp to WebP with max 1000px and strip metadata (typically 15KB - 30KB)
-    let optimizedBuffer = rawBuffer;
-    let contentType = 'image/webp';
-    const fileExt = '.webp';
-
-    try {
-      optimizedBuffer = await sharp(rawBuffer)
-        .rotate() // Auto-rotate according to EXIF
-        .resize({ width: 1000, height: 1000, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 70, effort: 4 })
-        .toBuffer();
-    } catch (sharpErr) {
-      console.warn('Sharp compression fallback to raw buffer:', sharpErr);
-      contentType = file.type;
-    }
-
+    const fileExt = getExtension(file.type, file.name);
     const cleanPrefix = type.toLowerCase().replace(/[^a-z0-9]/g, '');
     const filename = `${cleanPrefix}-${Date.now()}${fileExt}`;
 
-    // 1. Attempt Supabase Storage Upload to bucket 'proofs' with 1-year CDN caching
+    // 1. Upload directly to Supabase Storage bucket 'proofs'
     try {
       const { data: uploadData, error: uploadErr } = await supabaseAdmin
         .storage
         .from('proofs')
-        .upload(filename, optimizedBuffer, {
-          contentType,
+        .upload(filename, rawBytes, {
+          contentType: file.type,
           cacheControl: '31536000, public',
           upsert: true,
         });
@@ -76,20 +88,23 @@ export async function POST(request: NextRequest) {
             filename,
           });
         }
+      } else if (uploadErr) {
+        console.warn('Supabase storage upload error:', uploadErr.message);
       }
     } catch (storageErr) {
-      console.warn('Supabase storage upload fallback:', storageErr);
+      console.warn('Supabase storage upload exception:', storageErr);
     }
 
-    // 2. Fallback to ultra-compressed WebP base64 Data URL (~30KB vs 5MB uncompressed)
-    const base64Data = `data:${contentType};base64,${optimizedBuffer.toString('base64')}`;
+    // 2. Fallback to base64 Data URL if Supabase storage is not configured / unavailable
+    const base64Str = arrayBufferToBase64(rawBytes);
+    const base64Data = `data:${file.type};base64,${base64Str}`;
     return NextResponse.json({
       success: true,
       url: base64Data,
       filename,
     });
   } catch (error: any) {
-    console.error('Upload error:', error);
+    console.error('Upload API route error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Gagal mengunggah file' },
       { status: 500 }
