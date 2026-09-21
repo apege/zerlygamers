@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const currentItem = settings[0];
+    const currentItem: Record<string, any> = (settings && settings.length > 0) ? settings[0] : {};
     const settingsData = {
       ...currentItem,
       admin_notes: currentItem?.admin_note ?? null,
