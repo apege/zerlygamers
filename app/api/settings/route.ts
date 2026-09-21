@@ -11,22 +11,27 @@ const noCacheHeaders = {
 };
 
 const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=600',
-  'CDN-Cache-Control': 'public, s-maxage=180',
-  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=180',
+  'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+  'CDN-Cache-Control': 'public, s-maxage=30',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=30',
 };
 
 const SETTINGS_CACHE_KEY = 'api_store_settings';
 
 // GET: Fetch store settings
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cached = getCached<any>(SETTINGS_CACHE_KEY, 60000);
-    if (cached) {
-      return NextResponse.json(
-        { success: true, data: cached },
-        { status: 200, headers: edgeCacheHeaders }
-      );
+    const { searchParams } = new URL(request.url);
+    const isAdmin = searchParams.get('admin') === 'true' || searchParams.has('t');
+
+    if (!isAdmin) {
+      const cached = getCached<any>(SETTINGS_CACHE_KEY, 30000);
+      if (cached) {
+        return NextResponse.json(
+          { success: true, data: cached },
+          { status: 200, headers: edgeCacheHeaders }
+        );
+      }
     }
 
     const { data: settings, error } = await supabaseAdmin
@@ -43,7 +48,7 @@ export async function GET() {
       // Create initial settings if not present
       const defaultSettings = {
         store_name: 'Zerly Gamers',
-        whatsapp_number: '6285624595886',
+        whatsapp_number: '6281994870911',
         qris_image_path: '/qris.jpeg',
         logo_image_path: '/logo.png',
         banner_image_path: null,
@@ -68,19 +73,29 @@ export async function GET() {
         throw new Error(initErr.message);
       }
 
-      setCached(SETTINGS_CACHE_KEY, initial[0]);
+      const initialData = {
+        ...initial[0],
+        admin_notes: initial[0].admin_note,
+      };
+
+      setCached(SETTINGS_CACHE_KEY, initialData);
 
       return NextResponse.json(
-        { success: true, data: initial[0] },
-        { status: 200, headers: edgeCacheHeaders }
+        { success: true, data: initialData },
+        { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
       );
     }
 
-    setCached(SETTINGS_CACHE_KEY, settings[0]);
+    const settingsData = {
+      ...settings[0],
+      admin_notes: settings[0].admin_note,
+    };
+
+    setCached(SETTINGS_CACHE_KEY, settingsData);
 
     return NextResponse.json(
-      { success: true, data: settings[0] },
-      { status: 200, headers: edgeCacheHeaders }
+      { success: true, data: settingsData },
+      { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching settings:', error);
@@ -111,6 +126,7 @@ export async function PATCH(request: NextRequest) {
       promo_discount_price,
       promo_end_date,
       admin_note,
+      admin_notes,
     } = body;
 
     const { data: existing } = await supabaseAdmin
@@ -123,7 +139,18 @@ export async function PATCH(request: NextRequest) {
     };
 
     if (store_name !== undefined) payload.store_name = store_name;
-    if (whatsapp_number !== undefined) payload.whatsapp_number = whatsapp_number;
+    
+    // Normalize WhatsApp number format (e.g. 0812... / +62812... -> 62812...)
+    if (whatsapp_number !== undefined) {
+      let clean = String(whatsapp_number).replace(/[^0-9]/g, '');
+      if (clean.startsWith('0')) {
+        clean = '62' + clean.slice(1);
+      } else if (clean.startsWith('8')) {
+        clean = '62' + clean;
+      }
+      payload.whatsapp_number = clean || whatsapp_number;
+    }
+
     if (qris_image_path !== undefined) payload.qris_image_path = qris_image_path;
     if (logo_image_path !== undefined) payload.logo_image_path = logo_image_path;
     if (banner_image_path !== undefined) payload.banner_image_path = banner_image_path;
@@ -137,6 +164,7 @@ export async function PATCH(request: NextRequest) {
     if (promo_discount_price !== undefined) payload.promo_discount_price = Number(promo_discount_price);
     if (promo_end_date !== undefined) payload.promo_end_date = promo_end_date;
     if (admin_note !== undefined) payload.admin_note = admin_note;
+    if (admin_notes !== undefined) payload.admin_note = admin_notes;
 
     let result;
     if (existing && existing.length > 0) {
@@ -158,12 +186,17 @@ export async function PATCH(request: NextRequest) {
       result = data[0];
     }
 
-    invalidateCache(SETTINGS_CACHE_KEY);
+    const updatedData = {
+      ...result,
+      admin_notes: result.admin_note,
+    };
+
+    setCached(SETTINGS_CACHE_KEY, updatedData);
     // Invalidate products cache as promo active status affects computed badges
     invalidateCache('api_products_list');
 
     return NextResponse.json(
-      { success: true, data: result },
+      { success: true, data: updatedData },
       { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {

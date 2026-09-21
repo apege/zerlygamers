@@ -28,6 +28,16 @@ import {
 import { RobuxPackage, RobloxUser, Testimonial } from "@/types/landing";
 
 // Review Token Listener Subcomponent
+function cleanWhatsAppNumber(phone: string): string {
+  let clean = (phone || "").replace(/[^0-9]/g, "");
+  if (clean.startsWith("0")) {
+    clean = "62" + clean.slice(1);
+  } else if (clean.startsWith("8")) {
+    clean = "62" + clean;
+  }
+  return clean || "6281994870911";
+}
+
 function ReviewTokenListener({
   onOpenReview,
 }: {
@@ -48,7 +58,7 @@ export default function ZerlyGamersPage() {
   const [packages, setPackages] = useState<RobuxPackage[]>(INITIAL_ROBUX_PACKAGES);
   const [allPackages, setAllPackages] = useState<RobuxPackage[]>(INITIAL_ALL_PACKAGES);
   const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
-  const [whatsappNumber, setWhatsappNumber] = useState("6285624595886");
+  const [whatsappNumber, setWhatsappNumber] = useState("6281994870911");
   const [storeName, setStoreName] = useState("Zerly Gamers");
   const [logoPath, setLogoPath] = useState("/logo.png");
   const [qrisImagePath, setQrisImagePath] = useState("/qris.jpeg");
@@ -248,7 +258,7 @@ export default function ZerlyGamersPage() {
         `*Metode Order:* Via WhatsApp Admin\n\n` +
         `Mohon segera diproses ya kak. Terima kasih! 💖`;
 
-      const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+      const cleanWa = cleanWhatsAppNumber(whatsappNumber);
       const waLink = `https://wa.me/${cleanWa}?text=${encodeURIComponent(messageText)}`;
 
       setWaInvoiceNumber(invoiceNumber);
@@ -300,7 +310,7 @@ export default function ZerlyGamersPage() {
       ? `${robloxUser.displayName} (@${robloxUser.name})`
       : userId;
 
-    const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+    const cleanWa = cleanWhatsAppNumber(whatsappNumber);
     const messageText = `Halo Admin ${storeName}, saya telah order di website:\n\n` +
       `*No Invoice:* ${invoiceNumber}\n` +
       `*Paket:* ${selectedPackage.amount} Robux\n` +

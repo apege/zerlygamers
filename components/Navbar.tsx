@@ -22,9 +22,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const storeName = initialStoreName || "Zerly Gamers";
   const logoPath = initialLogoPath || "/logo.png";
-  const whatsappNumber = initialWaNumber || "6285624595886";
+  const whatsappNumber = initialWaNumber || "6281994870911";
 
-  const cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+  let cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+  if (cleanWa.startsWith("0")) {
+    cleanWa = "62" + cleanWa.slice(1);
+  } else if (cleanWa.startsWith("8")) {
+    cleanWa = "62" + cleanWa;
+  }
   const waContactLink = `https://wa.me/${cleanWa}?text=Halo%20Admin%20${encodeURIComponent(storeName)}%2C%20saya%20ingin%20bertanya%20seputar%20top%20up%20Robux.`;
 
   // Split store name into primary and secondary words if applicable

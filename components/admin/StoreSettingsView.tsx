@@ -106,7 +106,7 @@ export default function StoreSettingsView() {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings', {
+      const res = await fetch('/api/settings?admin=true&t=' + Date.now(), {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
       });
@@ -183,12 +183,19 @@ export default function StoreSettingsView() {
         }),
       });
 
-      if (res.ok) {
+      const json = await res.json();
+      if (res.ok && json.success) {
+        if (json.data?.whatsapp_number) {
+          setWhatsappNumber(json.data.whatsapp_number);
+        }
         setSaveSuccessAlert(true);
         setTimeout(() => setSaveSuccessAlert(false), 3000);
+      } else {
+        alert(json.error || 'Gagal menyimpan pengaturan.');
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
+      alert('Terjadi kesalahan koneksi saat menyimpan pengaturan.');
     } finally {
       setIsSaving(false);
     }
