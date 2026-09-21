@@ -57,6 +57,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Admin page must never be cached by Cloudflare
+        source: "/admin",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, max-age=0",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "no-store",
+          },
+          {
+            key: "Cloudflare-CDN-Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
     ];
   },
 };
