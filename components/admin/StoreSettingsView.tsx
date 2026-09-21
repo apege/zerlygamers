@@ -39,7 +39,7 @@ export default function StoreSettingsView() {
 
   // 1. Identity & Contact State
   const [storeName, setStoreName] = useState('Zerly Gamers');
-  const [whatsappNumber, setWhatsappNumber] = useState('6285624595886');
+  const [whatsappNumber, setWhatsappNumber] = useState('6281991541376');
 
   // 2. Promo Banner State
   const [productsList, setProductsList] = useState<Array<{ id: number; robux: number; price: number; badge?: string }>>([]);
@@ -57,7 +57,7 @@ export default function StoreSettingsView() {
   const [logoPreview, setLogoPreview] = useState('/logo.png');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -108,7 +108,7 @@ export default function StoreSettingsView() {
     try {
       const res = await fetch('/api/settings?admin=true&t=' + Date.now(), {
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
+        headers: { 'Cache-Control': 'no-cache, no-store' },
       });
       const data = await res.json();
       if (data.success && data.data) {
@@ -165,22 +165,25 @@ export default function StoreSettingsView() {
 
   const isAllOpen = Object.values(openSections).every(Boolean);
 
-  const handleSaveAll = async () => {
+  const handleSaveSettings = async (customPayload?: Record<string, any>, successMessage = 'Pengaturan berhasil disimpan!') => {
     setIsSaving(true);
     try {
+      const payload = {
+        store_name: storeName,
+        whatsapp_number: whatsappNumber,
+        qris_image_path: qrisPreview,
+        logo_image_path: logoPreview,
+        promo_active: isPromoActive,
+        promo_subtitle: promoTagline,
+        promo_robux_amount: promoAmount,
+        promo_discount_price: promoDiscountPrice,
+        ...customPayload,
+      };
+
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          store_name: storeName,
-          whatsapp_number: whatsappNumber,
-          qris_image_path: qrisPreview,
-          logo_image_path: logoPreview,
-          promo_active: isPromoActive,
-          promo_subtitle: promoTagline,
-          promo_robux_amount: promoAmount,
-          promo_discount_price: promoDiscountPrice,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
@@ -188,8 +191,11 @@ export default function StoreSettingsView() {
         if (json.data?.whatsapp_number) {
           setWhatsappNumber(json.data.whatsapp_number);
         }
-        setSaveSuccessAlert(true);
-        setTimeout(() => setSaveSuccessAlert(false), 3000);
+        if (json.data?.store_name) {
+          setStoreName(json.data.store_name);
+        }
+        setSaveSuccessMsg(successMessage);
+        setTimeout(() => setSaveSuccessMsg(null), 3500);
       } else {
         alert(json.error || 'Gagal menyimpan pengaturan.');
       }
@@ -199,6 +205,10 @@ export default function StoreSettingsView() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveAll = () => {
+    handleSaveSettings(undefined, 'Semua pengaturan toko berhasil disimpan!');
   };
 
   return (
@@ -289,20 +299,38 @@ export default function StoreSettingsView() {
 
                 {/* Nomor WhatsApp */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-700">
-                    Nomor WhatsApp Admin CS (Format 62...)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-700">
+                      Nomor WhatsApp Admin CS (Format 62...)
+                    </label>
+                    <span className="text-[10px] font-bold text-rose-500 font-mono">
+                      Link: wa.me/{whatsappNumber.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')}
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
-                    placeholder="6285624595886"
-                    className="w-full px-4 py-2.5 bg-white border border-rose-200 rounded-2xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400"
+                    placeholder="6281991541376"
+                    className="w-full px-4 py-2.5 bg-white border border-rose-200 rounded-2xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 font-mono"
                   />
                   <p className="text-[10px] text-gray-400 font-medium">
-                    Tujuan konfirmasi order dan tombol bantuan CS pelanggan.
+                    Tujuan konfirmasi order dan tombol bantuan CS pelanggan. (Otomatis diformat 62xxx)
                   </p>
                 </div>
+              </div>
+
+              {/* Action Bar Section 1 */}
+              <div className="flex items-center justify-end pt-3 border-t border-rose-50">
+                <button
+                  type="button"
+                  onClick={() => handleSaveSettings({ store_name: storeName, whatsapp_number: whatsappNumber }, 'Nomor WhatsApp & Nama Toko berhasil disimpan!')}
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Simpan Identitas &amp; WA</span>
+                </button>
               </div>
             </div>
           )}
@@ -441,6 +469,29 @@ export default function StoreSettingsView() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Action Bar Section 2 */}
+              <div className="flex items-center justify-end pt-3 border-t border-rose-50">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSaveSettings(
+                      {
+                        promo_active: isPromoActive,
+                        promo_subtitle: promoTagline,
+                        promo_robux_amount: promoAmount,
+                        promo_discount_price: promoDiscountPrice,
+                      },
+                      'Pengaturan Promo Banner berhasil disimpan!'
+                    )
+                  }
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Simpan Pengaturan Promo</span>
+                </button>
               </div>
             </div>
           )}
@@ -651,27 +702,48 @@ export default function StoreSettingsView() {
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-[11px] font-mono text-gray-500 select-all"
                 />
               </div>
+
+              {/* Action Bar Section 3 */}
+              <div className="flex items-center justify-end pt-3 border-t border-rose-50">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSaveSettings(
+                      {
+                        qris_image_path: qrisPreview,
+                        logo_image_path: logoPreview,
+                      },
+                      'Media QRIS & Logo Toko berhasil disimpan!'
+                    )
+                  }
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Simpan QRIS &amp; Logo</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
       {/* Save Button */}
-      <div className="flex items-center justify-end gap-3 pt-4">
-        {saveSuccessAlert && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-full animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Pengaturan berhasil disimpan ke database!</span>
+      <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4">
+        {saveSuccessMsg && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-4 py-2.5 rounded-2xl shadow-xs animate-in fade-in zoom-in-95">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{saveSuccessMsg}</span>
           </span>
         )}
 
         <button
           onClick={handleSaveAll}
           disabled={isSaving}
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white text-xs font-black shadow-lg shadow-rose-500/25 transition-all active:scale-95 cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:opacity-95 text-white text-xs font-black shadow-lg shadow-rose-500/25 transition-all active:scale-95 cursor-pointer"
         >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          <span>{isSaving ? 'Menyimpan...' : 'Simpan Semua Pengaturan'}</span>
+          <span>{isSaving ? 'Menyimpan Semua...' : 'Simpan Semua Pengaturan'}</span>
         </button>
       </div>
 

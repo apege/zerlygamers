@@ -22,7 +22,8 @@ const SETTINGS_CACHE_KEY = 'api_store_settings';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const isAdmin = searchParams.get('admin') === 'true' || searchParams.has('t');
+    const reqNoCache = request.headers.get('cache-control')?.includes('no-cache') || request.headers.get('pragma')?.includes('no-cache');
+    const isAdmin = searchParams.get('admin') === 'true' || searchParams.has('t') || reqNoCache;
 
     if (!isAdmin) {
       const cached = getCached<any>(SETTINGS_CACHE_KEY, 30000);
@@ -191,6 +192,7 @@ export async function PATCH(request: NextRequest) {
       admin_notes: result.admin_note,
     };
 
+    invalidateCache(SETTINGS_CACHE_KEY);
     setCached(SETTINGS_CACHE_KEY, updatedData);
     // Invalidate products cache as promo active status affects computed badges
     invalidateCache('api_products_list');
