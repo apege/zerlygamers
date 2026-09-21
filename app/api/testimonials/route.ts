@@ -11,9 +11,9 @@ const noCacheHeaders = {
 };
 
 const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
-  'CDN-Cache-Control': 'public, s-maxage=120',
-  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=120',
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+  'CDN-Cache-Control': 'public, s-maxage=300',
+  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=300',
 };
 
 const TESTIMONIALS_CACHE_KEY = 'api_testimonials_list';
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const cached = getCached<any[]>(TESTIMONIALS_CACHE_KEY, 30000);
+    const cached = getCached<any[]>(TESTIMONIALS_CACHE_KEY, 300_000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },

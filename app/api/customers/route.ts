@@ -11,11 +11,13 @@ const noCacheHeaders = {
 };
 
 const CUSTOMERS_CACHE_KEY = 'api_customers_list';
+// 120 seconds in-memory TTL — customers list rarely changes in real-time
+const CUSTOMERS_TTL_MS = 120_000;
 
 // GET: Aggregated customers from orders and blacklists
 export async function GET() {
   try {
-    const cached = getCached<any[]>(CUSTOMERS_CACHE_KEY, 15000);
+    const cached = getCached<any[]>(CUSTOMERS_CACHE_KEY, CUSTOMERS_TTL_MS);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },

@@ -22,7 +22,7 @@ const PRODUCTS_CACHE_KEY = 'api_products_list';
 export async function GET() {
   try {
     // Check in-memory cache first (instant response)
-    const cached = getCached<any[]>(PRODUCTS_CACHE_KEY, 60000);
+    const cached = getCached<any[]>(PRODUCTS_CACHE_KEY, 300_000);
     if (cached) {
       return NextResponse.json(
         { success: true, data: cached },

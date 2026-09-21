@@ -213,12 +213,12 @@ export default function AdminPage() {
     fetchOrders();
     fetchStats();
 
-    // Gentle polling for orders every 2 minutes when tab is visible
+    // Polling every 5 minutes when tab is visible — reduces CF Worker requests significantly
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchOrders();
       }
-    }, 120000);
+    }, 300000);
 
     return () => clearInterval(interval);
   }, [fetchOrders, fetchStats]);
