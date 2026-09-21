@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       // Create initial settings if not present
       const defaultSettings = {
         store_name: 'Zerly Gamers',
-        whatsapp_number: '6281994870911',
+        whatsapp_number: '6281991541376',
         qris_image_path: '/qris.jpeg',
         logo_image_path: '/logo.png',
         banner_image_path: null,
@@ -74,9 +74,10 @@ export async function GET(request: NextRequest) {
         throw new Error(initErr.message);
       }
 
+      const initialItem = (initial && initial.length > 0) ? initial[0] : defaultSettings;
       const initialData = {
-        ...initial[0],
-        admin_notes: initial[0].admin_note,
+        ...initialItem,
+        admin_notes: initialItem?.admin_note ?? null,
       };
 
       setCached(SETTINGS_CACHE_KEY, initialData);
@@ -87,9 +88,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const currentItem = settings[0];
     const settingsData = {
-      ...settings[0],
-      admin_notes: settings[0].admin_note,
+      ...currentItem,
+      admin_notes: currentItem?.admin_note ?? null,
     };
 
     setCached(SETTINGS_CACHE_KEY, settingsData);
@@ -167,7 +169,7 @@ export async function PATCH(request: NextRequest) {
     if (admin_note !== undefined) payload.admin_note = admin_note;
     if (admin_notes !== undefined) payload.admin_note = admin_notes;
 
-    let result;
+    let result: Record<string, any> = {};
     if (existing && existing.length > 0) {
       const { data, error } = await supabaseAdmin
         .from('store_settings')
@@ -175,21 +177,28 @@ export async function PATCH(request: NextRequest) {
         .eq('id', existing[0].id)
         .select();
 
-      if (error) throw new Error(error.message);
-      result = data[0];
+      if (error) {
+        console.error('Supabase update settings error:', error);
+        throw new Error(error.message);
+      }
+      result = (data && data.length > 0) ? data[0] : { id: existing[0].id, ...payload };
     } else {
       const { data, error } = await supabaseAdmin
         .from('store_settings')
         .insert([payload])
         .select();
 
-      if (error) throw new Error(error.message);
-      result = data[0];
+      if (error) {
+        console.error('Supabase insert settings error:', error);
+        throw new Error(error.message);
+      }
+      result = (data && data.length > 0) ? data[0] : payload;
     }
 
     const updatedData = {
+      ...payload,
       ...result,
-      admin_notes: result.admin_note,
+      admin_notes: result?.admin_note ?? payload.admin_note ?? payload.admin_notes ?? null,
     };
 
     invalidateCache(SETTINGS_CACHE_KEY);

@@ -16,9 +16,9 @@ export default function AdminNotesCard() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings', {
+        const res = await fetch('/api/settings?admin=true&t=' + Date.now(), {
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 'Cache-Control': 'no-cache, no-store' },
         });
         const json = await res.json();
         if (json.success && json.data && json.data.admin_notes) {
