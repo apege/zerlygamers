@@ -188,7 +188,18 @@ export default function StoreSettingsView() {
 
       const json = await res.json();
       if (res.ok && json.success) {
-        // Immediately re-fetch from DB to confirm the saved value
+        if (json.data?.whatsapp_number) {
+          setWhatsappNumber(json.data.whatsapp_number);
+        }
+        if (json.data?.store_name) {
+          setStoreName(json.data.store_name);
+        }
+        // Invalidate browser session cache for settings so public page also gets updated
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('zg_settings_v1');
+          sessionStorage.removeItem('zg_products_v1');
+        }
+        // Re-fetch from DB to confirm saved data
         await fetchSettings();
         setSaveSuccessMsg(successMessage);
         setTimeout(() => setSaveSuccessMsg(null), 3500);
