@@ -115,13 +115,37 @@ export default function ZerlyGamersPage() {
     }
   };
 
-  // 1. Fetch live products from /api/products
+  // 1. Fetch live products from /api/products (browser-cached 5 min)
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        const CACHE_KEY = 'zg_products_v1';
+        const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
+            const active = data.filter((p: any) => p.is_active !== false);
+            if (active.length > 0) {
+              const mapped: RobuxPackage[] = active.map((p: any) => ({
+                id: p.id,
+                amount: Number(p.robux),
+                priceFormatted: `Rp ${Number(p.price).toLocaleString("id-ID")}`,
+                priceNumber: Number(p.price),
+                isBestSeller: p.badge === "POPULER" || p.badge === "PROMO" || p.robux === 240,
+              }));
+              setAllPackages(mapped);
+              setPackages(mapped.slice(0, 6));
+              const bestSeller = mapped.find((p) => p.isBestSeller) || mapped[0];
+              if (bestSeller) setSelectedPackage(bestSeller);
+              return;
+            }
+          }
+        }
         const res = await fetch("/api/products");
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: json.data, ts: Date.now() }));
           const active = json.data.filter((p: any) => p.is_active !== false);
           if (active.length > 0) {
             const mapped: RobuxPackage[] = active.map((p: any) => ({
@@ -131,11 +155,8 @@ export default function ZerlyGamersPage() {
               priceNumber: Number(p.price),
               isBestSeller: p.badge === "POPULER" || p.badge === "PROMO" || p.robux === 240,
             }));
-
             setAllPackages(mapped);
             setPackages(mapped.slice(0, 6));
-
-            // Select default best seller or first package
             const bestSeller = mapped.find((p) => p.isBestSeller) || mapped[0];
             if (bestSeller) setSelectedPackage(bestSeller);
           }
@@ -144,27 +165,46 @@ export default function ZerlyGamersPage() {
         console.error("Failed to load products from API:", e);
       }
     };
-
     fetchProducts();
   }, []);
 
-  // 2. Fetch live testimonials with admin_reply from /api/testimonials
+  // 2. Fetch live testimonials with admin_reply from /api/testimonials (browser-cached 10 min)
   const fetchTestimonials = useCallback(async () => {
     try {
+      const CACHE_KEY = 'zg_testimonials_v1';
+      const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) {
+          const approved = data.filter((t: any) => t.status === "approved" || !t.status);
+          if (approved.length > 0) {
+            setTestimonials(approved.map((t: any) => ({
+              id: t.id,
+              username: t.username || "@Gamer",
+              avatar: t.image_path || "",
+              text: t.comment || t.message || "Top up di Zerly Gamers selalu cepat & aman!",
+              stars: Number(t.rating) || 5,
+              adminReply: t.admin_reply || null,
+            })));
+            return;
+          }
+        }
+      }
       const res = await fetch("/api/testimonials");
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: json.data, ts: Date.now() }));
         const approved = json.data.filter((t: any) => t.status === "approved" || !t.status);
         if (approved.length > 0) {
-          const mapped: Testimonial[] = approved.map((t: any) => ({
+          setTestimonials(approved.map((t: any) => ({
             id: t.id,
             username: t.username || "@Gamer",
             avatar: t.image_path || "",
             text: t.comment || t.message || "Top up di Zerly Gamers selalu cepat & aman!",
             stars: Number(t.rating) || 5,
             adminReply: t.admin_reply || null,
-          }));
-          setTestimonials(mapped);
+          })));
         }
       }
     } catch (e) {
@@ -176,30 +216,55 @@ export default function ZerlyGamersPage() {
     fetchTestimonials();
   }, [fetchTestimonials]);
 
-  // 3. Fetch store settings from /api/settings
+  // 3. Fetch store settings from /api/settings (browser-cached 10 min)
   useEffect(() => {
     const fetchSettings = async () => {
       try {
+        const CACHE_KEY = 'zg_settings_v1';
+        const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data: s, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL) {
+            if (s.whatsapp_number) setWhatsappNumber(s.whatsapp_number);
+            if (s.store_name) setStoreName(s.store_name);
+            if (s.logo_image_path) setLogoPath(s.logo_image_path);
+            if (s.qris_image_path) setQrisImagePath(s.qris_image_path);
+            if (s.promo_active && s.promo_robux_amount) {
+              let formattedEnd = "";
+              if (s.promo_end_date) {
+                const d = new Date(s.promo_end_date);
+                formattedEnd = d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+              }
+              setPromoData({
+                isActive: Boolean(s.promo_active),
+                robuxAmount: Number(s.promo_robux_amount),
+                discountPrice: Number(s.promo_discount_price) || 45000,
+                originalPrice: Number(s.promo_discount_price) ? Math.round(Number(s.promo_discount_price) * 1.25) : 55000,
+                tagline: s.promo_subtitle || undefined,
+                endDateFormatted: formattedEnd || undefined,
+              });
+            } else {
+              setPromoData(null);
+            }
+            return;
+          }
+        }
         const res = await fetch("/api/settings");
         const json = await res.json();
         if (json.success && json.data) {
           const s = json.data;
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: s, ts: Date.now() }));
           if (s.whatsapp_number) setWhatsappNumber(s.whatsapp_number);
           if (s.store_name) setStoreName(s.store_name);
           if (s.logo_image_path) setLogoPath(s.logo_image_path);
           if (s.qris_image_path) setQrisImagePath(s.qris_image_path);
-
           if (s.promo_active && s.promo_robux_amount) {
             let formattedEnd = "";
             if (s.promo_end_date) {
               const d = new Date(s.promo_end_date);
-              formattedEnd = d.toLocaleDateString("id-ID", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              });
+              formattedEnd = d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
             }
-
             setPromoData({
               isActive: Boolean(s.promo_active),
               robuxAmount: Number(s.promo_robux_amount),
@@ -216,7 +281,6 @@ export default function ZerlyGamersPage() {
         console.error("Failed to load settings from API:", e);
       }
     };
-
     fetchSettings();
   }, []);
 
