@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getCached, setCached, invalidateCache } from '@/lib/serverCache';
+import { getCached, setCached, invalidateCache, withTimeout } from '@/lib/serverCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +22,9 @@ const SETTINGS_CACHE_KEY = 'api_store_settings';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const reqNoCache = request.headers.get('cache-control')?.includes('no-cache') || request.headers.get('pragma')?.includes('no-cache');
+    const reqNoCache =
+      request.headers.get('cache-control')?.includes('no-cache') ||
+      request.headers.get('pragma')?.includes('no-cache');
     const isAdmin = searchParams.get('admin') === 'true' || searchParams.has('t') || reqNoCache;
 
     if (!isAdmin) {
@@ -35,18 +37,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const { data: settings, error } = await supabaseAdmin
-      .from('store_settings')
-      .select('id, store_name, whatsapp_number, qris_image_path, logo_image_path, banner_image_path, promo_active, promo_tag, promo_badge, promo_title, promo_subtitle, promo_robux_amount, promo_original_label, promo_discount_price, promo_end_date, admin_note')
-      .order('id', { ascending: true })
-      .limit(1);
+    const { data: settings, error } = await withTimeout(
+      supabaseAdmin
+        .from('store_settings')
+        .select(
+          'id, store_name, whatsapp_number, qris_image_path, logo_image_path, banner_image_path, promo_active, promo_tag, promo_badge, promo_title, promo_subtitle, promo_robux_amount, promo_original_label, promo_discount_price, promo_end_date, admin_note'
+        )
+        .order('id', { ascending: true })
+        .limit(1),
+      8000
+    );
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     if (!settings || settings.length === 0) {
-      // Create initial settings if not present
       const defaultSettings = {
         store_name: 'Zerly Gamers',
         whatsapp_number: '6281991541376',
@@ -70,32 +74,22 @@ export async function GET(request: NextRequest) {
         .insert([defaultSettings])
         .select();
 
-      if (initErr) {
-        throw new Error(initErr.message);
-      }
+      if (initErr) throw new Error(initErr.message);
 
-      const initialItem = (initial && initial.length > 0) ? initial[0] : defaultSettings;
-      const initialData = {
-        ...initialItem,
-        admin_notes: initialItem?.admin_note ?? null,
-      };
+      const initialItem = initial && initial.length > 0 ? initial[0] : defaultSettings;
+      const initialData = { ...initialItem, admin_notes: initialItem?.admin_note ?? null };
 
       setCached(SETTINGS_CACHE_KEY, initialData);
-
       return NextResponse.json(
         { success: true, data: initialData },
         { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
       );
     }
 
-    const currentItem: Record<string, any> = (settings && settings.length > 0) ? settings[0] : {};
-    const settingsData = {
-      ...currentItem,
-      admin_notes: currentItem?.admin_note ?? null,
-    };
+    const currentItem: Record<string, any> = settings[0];
+    const settingsData = { ...currentItem, admin_notes: currentItem?.admin_note ?? null };
 
     setCached(SETTINGS_CACHE_KEY, settingsData);
-
     return NextResponse.json(
       { success: true, data: settingsData },
       { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
@@ -132,25 +126,23 @@ export async function PATCH(request: NextRequest) {
       admin_notes,
     } = body;
 
-    const { data: existing } = await supabaseAdmin
-      .from('store_settings')
-      .select('id')
-      .limit(1);
+    // 1. Get existing row id
+    const { data: existing } = await withTimeout(
+      supabaseAdmin.from('store_settings').select('id').limit(1),
+      8000
+    );
 
     const payload: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
 
     if (store_name !== undefined) payload.store_name = store_name;
-    
-    // Normalize WhatsApp number format (e.g. 0812... / +62812... -> 62812...)
+
+    // Normalize WhatsApp number (0812 / +62812 / 812 -> 62812...)
     if (whatsapp_number !== undefined) {
       let clean = String(whatsapp_number).replace(/[^0-9]/g, '');
-      if (clean.startsWith('0')) {
-        clean = '62' + clean.slice(1);
-      } else if (clean.startsWith('8')) {
-        clean = '62' + clean;
-      }
+      if (clean.startsWith('0')) clean = '62' + clean.slice(1);
+      else if (clean.startsWith('8')) clean = '62' + clean;
       payload.whatsapp_number = clean || whatsapp_number;
     }
 
@@ -169,41 +161,42 @@ export async function PATCH(request: NextRequest) {
     if (admin_note !== undefined) payload.admin_note = admin_note;
     if (admin_notes !== undefined) payload.admin_note = admin_notes;
 
-    let result: Record<string, any> = {};
-    if (existing && existing.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from('store_settings')
-        .update(payload)
-        .eq('id', existing[0].id)
-        .select();
+    // 2. Upsert
+    let rowId: number | null = existing && existing.length > 0 ? existing[0].id : null;
 
+    if (rowId !== null) {
+      const { error } = await withTimeout(
+        supabaseAdmin.from('store_settings').update(payload).eq('id', rowId),
+        10000
+      );
       if (error) {
         console.error('Supabase update settings error:', error);
         throw new Error(error.message);
       }
-      result = (data && data.length > 0) ? data[0] : { id: existing[0].id, ...payload };
     } else {
-      const { data, error } = await supabaseAdmin
-        .from('store_settings')
-        .insert([payload])
-        .select();
-
+      const { data: inserted, error } = await withTimeout(
+        supabaseAdmin.from('store_settings').insert([payload]).select('id'),
+        10000
+      );
       if (error) {
         console.error('Supabase insert settings error:', error);
         throw new Error(error.message);
       }
-      result = (data && data.length > 0) ? data[0] : payload;
+      rowId = inserted && inserted.length > 0 ? inserted[0].id : null;
     }
 
-    const updatedData = {
-      ...payload,
-      ...result,
-      admin_notes: result?.admin_note ?? payload.admin_note ?? payload.admin_notes ?? null,
-    };
+    // 3. Always SELECT full row from DB after update to return confirmed data
+    const { data: freshRow, error: fetchErr } = await withTimeout(
+      supabaseAdmin.from('store_settings').select('*').eq('id', rowId ?? 1).limit(1),
+      8000
+    );
+    if (fetchErr) throw new Error(fetchErr.message);
+
+    const result: Record<string, any> = freshRow && freshRow.length > 0 ? freshRow[0] : { ...payload };
+    const updatedData = { ...result, admin_notes: result?.admin_note ?? null };
 
     invalidateCache(SETTINGS_CACHE_KEY);
     setCached(SETTINGS_CACHE_KEY, updatedData);
-    // Invalidate products cache as promo active status affects computed badges
     invalidateCache('api_products_list');
 
     return NextResponse.json(

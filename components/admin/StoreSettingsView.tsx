@@ -188,12 +188,8 @@ export default function StoreSettingsView() {
 
       const json = await res.json();
       if (res.ok && json.success) {
-        if (json.data?.whatsapp_number) {
-          setWhatsappNumber(json.data.whatsapp_number);
-        }
-        if (json.data?.store_name) {
-          setStoreName(json.data.store_name);
-        }
+        // Immediately re-fetch from DB to confirm the saved value
+        await fetchSettings();
         setSaveSuccessMsg(successMessage);
         setTimeout(() => setSaveSuccessMsg(null), 3500);
       } else {
