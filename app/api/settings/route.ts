@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getCached, setCached, invalidateCache, withTimeout } from '@/lib/serverCache';
+import { normalizeWhatsAppNumber } from '@/lib/phoneUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,12 +9,7 @@ const noCacheHeaders = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
   'CDN-Cache-Control': 'no-store',
   'Vercel-CDN-Cache-Control': 'no-store',
-};
-
-const edgeCacheHeaders = {
-  'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-  'CDN-Cache-Control': 'public, s-maxage=30',
-  'Cloudflare-CDN-Cache-Control': 'public, s-maxage=30',
+  'Cloudflare-CDN-Cache-Control': 'no-store',
 };
 
 const SETTINGS_CACHE_KEY = 'api_store_settings';
@@ -25,14 +21,14 @@ export async function GET(request: NextRequest) {
     const reqNoCache =
       request.headers.get('cache-control')?.includes('no-cache') ||
       request.headers.get('pragma')?.includes('no-cache');
-    const isAdmin = searchParams.get('admin') === 'true' || searchParams.has('t') || reqNoCache;
+    const bypassCache = searchParams.get('admin') === 'true' || searchParams.has('t') || reqNoCache;
 
-    if (!isAdmin) {
-      const cached = getCached<any>(SETTINGS_CACHE_KEY, 30000);
+    if (!bypassCache) {
+      const cached = getCached<any>(SETTINGS_CACHE_KEY, 10000); // 10 sec short memory cache
       if (cached) {
         return NextResponse.json(
           { success: true, data: cached },
-          { status: 200, headers: edgeCacheHeaders }
+          { status: 200, headers: noCacheHeaders }
         );
       }
     }
@@ -77,22 +73,30 @@ export async function GET(request: NextRequest) {
       if (initErr) throw new Error(initErr.message);
 
       const initialItem = initial && initial.length > 0 ? initial[0] : defaultSettings;
-      const initialData = { ...initialItem, admin_notes: initialItem?.admin_note ?? null };
+      const initialData = {
+        ...initialItem,
+        whatsapp_number: normalizeWhatsAppNumber(initialItem.whatsapp_number),
+        admin_notes: initialItem?.admin_note ?? null,
+      };
 
       setCached(SETTINGS_CACHE_KEY, initialData);
       return NextResponse.json(
         { success: true, data: initialData },
-        { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
+        { status: 200, headers: noCacheHeaders }
       );
     }
 
     const currentItem: Record<string, any> = settings[0];
-    const settingsData = { ...currentItem, admin_notes: currentItem?.admin_note ?? null };
+    const settingsData = {
+      ...currentItem,
+      whatsapp_number: normalizeWhatsAppNumber(currentItem.whatsapp_number),
+      admin_notes: currentItem?.admin_note ?? null,
+    };
 
     setCached(SETTINGS_CACHE_KEY, settingsData);
     return NextResponse.json(
       { success: true, data: settingsData },
-      { status: 200, headers: isAdmin ? noCacheHeaders : edgeCacheHeaders }
+      { status: 200, headers: noCacheHeaders }
     );
   } catch (error: any) {
     console.error('Error fetching settings:', error);
@@ -126,9 +130,9 @@ export async function PATCH(request: NextRequest) {
       admin_notes,
     } = body;
 
-    // 1. Get existing row id
+    // 1. Get existing row id (deterministic order by id)
     const { data: existing } = await withTimeout(
-      supabaseAdmin.from('store_settings').select('id').limit(1),
+      supabaseAdmin.from('store_settings').select('id').order('id', { ascending: true }).limit(1),
       8000
     );
 
@@ -136,14 +140,11 @@ export async function PATCH(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    if (store_name !== undefined) payload.store_name = store_name;
+    if (store_name !== undefined) payload.store_name = String(store_name).trim();
 
-    // Normalize WhatsApp number (0812 / +62812 / 812 -> 62812...)
+    // Standardize WhatsApp number (0812 / +62812 / 812 -> 62812...)
     if (whatsapp_number !== undefined) {
-      let clean = String(whatsapp_number).replace(/[^0-9]/g, '');
-      if (clean.startsWith('0')) clean = '62' + clean.slice(1);
-      else if (clean.startsWith('8')) clean = '62' + clean;
-      payload.whatsapp_number = clean || whatsapp_number;
+      payload.whatsapp_number = normalizeWhatsAppNumber(whatsapp_number);
     }
 
     if (qris_image_path !== undefined) payload.qris_image_path = qris_image_path;
@@ -193,7 +194,11 @@ export async function PATCH(request: NextRequest) {
     if (fetchErr) throw new Error(fetchErr.message);
 
     const result: Record<string, any> = freshRow && freshRow.length > 0 ? freshRow[0] : { ...payload };
-    const updatedData = { ...result, admin_notes: result?.admin_note ?? null };
+    const updatedData = {
+      ...result,
+      whatsapp_number: normalizeWhatsAppNumber(result.whatsapp_number),
+      admin_notes: result?.admin_note ?? null,
+    };
 
     invalidateCache(SETTINGS_CACHE_KEY);
     setCached(SETTINGS_CACHE_KEY, updatedData);

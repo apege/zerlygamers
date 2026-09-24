@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { AdminOrder } from '@/data/adminDummyData';
 import TestimonialTokenModal from '@/components/admin/TestimonialTokenModal';
+import { normalizeWhatsAppNumber } from '@/lib/phoneUtils';
 
 interface OrderDetailViewProps {
   order: AdminOrder;
@@ -282,7 +283,7 @@ export default function OrderDetailView({ order, onBack, onUpdateStatus }: Order
 
         {order.whatsappNumber && (
           <a
-            href={`https://wa.me/${order.whatsappNumber.replace(/[^0-9]/g, '')}`}
+            href={`https://wa.me/${normalizeWhatsAppNumber(order.whatsappNumber)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition-all active:scale-95 cursor-pointer sm:ml-auto"

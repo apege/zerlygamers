@@ -22,6 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import CustomPromoDatePicker from '@/components/admin/CustomPromoDatePicker';
+import { normalizeWhatsAppNumber } from '@/lib/phoneUtils';
 
 export default function StoreSettingsView() {
   // Accordion Sections State
@@ -165,25 +166,13 @@ export default function StoreSettingsView() {
 
   const isAllOpen = Object.values(openSections).every(Boolean);
 
-  const handleSaveSettings = async (customPayload?: Record<string, any>, successMessage = 'Pengaturan berhasil disimpan!') => {
+  const handleSaveSettings = async (payloadToSend: Record<string, any>, successMessage = 'Pengaturan berhasil disimpan!') => {
     setIsSaving(true);
     try {
-      const payload = {
-        store_name: storeName,
-        whatsapp_number: whatsappNumber,
-        qris_image_path: qrisPreview,
-        logo_image_path: logoPreview,
-        promo_active: isPromoActive,
-        promo_subtitle: promoTagline,
-        promo_robux_amount: promoAmount,
-        promo_discount_price: promoDiscountPrice,
-        ...customPayload,
-      };
-
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloadToSend),
       });
 
       const json = await res.json();
@@ -215,7 +204,19 @@ export default function StoreSettingsView() {
   };
 
   const handleSaveAll = () => {
-    handleSaveSettings(undefined, 'Semua pengaturan toko berhasil disimpan!');
+    handleSaveSettings(
+      {
+        store_name: storeName,
+        whatsapp_number: whatsappNumber,
+        qris_image_path: qrisPreview,
+        logo_image_path: logoPreview,
+        promo_active: isPromoActive,
+        promo_subtitle: promoTagline,
+        promo_robux_amount: promoAmount,
+        promo_discount_price: promoDiscountPrice,
+      },
+      'Semua pengaturan toko berhasil disimpan!'
+    );
   };
 
   return (
@@ -311,7 +312,7 @@ export default function StoreSettingsView() {
                       Nomor WhatsApp Admin CS (Format 62...)
                     </label>
                     <span className="text-[10px] font-bold text-rose-500 font-mono">
-                      Link: wa.me/{whatsappNumber.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')}
+                      Link: wa.me/{normalizeWhatsAppNumber(whatsappNumber)}
                     </span>
                   </div>
                   <input

@@ -17,6 +17,7 @@ import { CaraOrderModal } from "@/components/modals/CaraOrderModal";
 import { FaqModal } from "@/components/modals/FaqModal";
 import CustomerReviewModal from "@/components/modals/CustomerReviewModal";
 import { WhatsAppSuccessModal } from "@/components/modals/WhatsAppSuccessModal";
+import { normalizeWhatsAppNumber } from "@/lib/phoneUtils";
 
 // Default Initial Data & Types
 import {
@@ -28,16 +29,6 @@ import {
 import { RobuxPackage, RobloxUser, Testimonial } from "@/types/landing";
 
 // Review Token Listener Subcomponent
-function cleanWhatsAppNumber(phone: string): string {
-  let clean = (phone || "").replace(/[^0-9]/g, "");
-  if (clean.startsWith("0")) {
-    clean = "62" + clean.slice(1);
-  } else if (clean.startsWith("8")) {
-    clean = "62" + clean;
-  }
-  return clean || "6281994870911";
-}
-
 function ReviewTokenListener({
   onOpenReview,
 }: {
@@ -58,7 +49,7 @@ export default function ZerlyGamersPage() {
   const [packages, setPackages] = useState<RobuxPackage[]>(INITIAL_ROBUX_PACKAGES);
   const [allPackages, setAllPackages] = useState<RobuxPackage[]>(INITIAL_ALL_PACKAGES);
   const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
-  const [whatsappNumber, setWhatsappNumber] = useState("6281994870911");
+  const [whatsappNumber, setWhatsappNumber] = useState("6281991541376");
   const [storeName, setStoreName] = useState("Zerly Gamers");
   const [logoPath, setLogoPath] = useState("/logo.png");
   const [qrisImagePath, setQrisImagePath] = useState("/qris.jpeg");
@@ -216,46 +207,18 @@ export default function ZerlyGamersPage() {
     fetchTestimonials();
   }, [fetchTestimonials]);
 
-  // 3. Fetch store settings from /api/settings (browser-cached 10 min)
+  // 3. Fetch store settings from /api/settings
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const CACHE_KEY = 'zg_settings_v1';
-        const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-        const cached = sessionStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { data: s, ts } = JSON.parse(cached);
-          if (Date.now() - ts < CACHE_TTL) {
-            if (s.whatsapp_number) setWhatsappNumber(s.whatsapp_number);
-            if (s.store_name) setStoreName(s.store_name);
-            if (s.logo_image_path) setLogoPath(s.logo_image_path);
-            if (s.qris_image_path) setQrisImagePath(s.qris_image_path);
-            if (s.promo_active && s.promo_robux_amount) {
-              let formattedEnd = "";
-              if (s.promo_end_date) {
-                const d = new Date(s.promo_end_date);
-                formattedEnd = d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-              }
-              setPromoData({
-                isActive: Boolean(s.promo_active),
-                robuxAmount: Number(s.promo_robux_amount),
-                discountPrice: Number(s.promo_discount_price) || 45000,
-                originalPrice: Number(s.promo_discount_price) ? Math.round(Number(s.promo_discount_price) * 1.25) : 55000,
-                tagline: s.promo_subtitle || undefined,
-                endDateFormatted: formattedEnd || undefined,
-              });
-            } else {
-              setPromoData(null);
-            }
-            return;
-          }
-        }
-        const res = await fetch("/api/settings");
+        const res = await fetch("/api/settings?t=" + Date.now(), {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
         const json = await res.json();
         if (json.success && json.data) {
           const s = json.data;
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: s, ts: Date.now() }));
-          if (s.whatsapp_number) setWhatsappNumber(s.whatsapp_number);
+          if (s.whatsapp_number) setWhatsappNumber(normalizeWhatsAppNumber(s.whatsapp_number));
           if (s.store_name) setStoreName(s.store_name);
           if (s.logo_image_path) setLogoPath(s.logo_image_path);
           if (s.qris_image_path) setQrisImagePath(s.qris_image_path);
@@ -322,7 +285,7 @@ export default function ZerlyGamersPage() {
         `*Metode Order:* Via WhatsApp Admin\n\n` +
         `Mohon segera diproses ya kak. Terima kasih! 💖`;
 
-      const cleanWa = cleanWhatsAppNumber(whatsappNumber);
+      const cleanWa = normalizeWhatsAppNumber(whatsappNumber);
       const waLink = `https://wa.me/${cleanWa}?text=${encodeURIComponent(messageText)}`;
 
       setWaInvoiceNumber(invoiceNumber);
@@ -374,7 +337,7 @@ export default function ZerlyGamersPage() {
       ? `${robloxUser.displayName} (@${robloxUser.name})`
       : userId;
 
-    const cleanWa = cleanWhatsAppNumber(whatsappNumber);
+    const cleanWa = normalizeWhatsAppNumber(whatsappNumber);
     const messageText = `Halo Admin ${storeName}, saya telah order di website:\n\n` +
       `*No Invoice:* ${invoiceNumber}\n` +
       `*Paket:* ${selectedPackage.amount} Robux\n` +

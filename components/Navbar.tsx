@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, User, Menu, X, Home as HomeIcon, Gamepad2, HelpCircle, MessageSquare, PhoneCall, BookOpen } from "lucide-react";
+import { normalizeWhatsAppNumber } from "@/lib/phoneUtils";
 
 interface NavbarProps {
   onOpenCaraOrder: () => void;
@@ -22,14 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const storeName = initialStoreName || "Zerly Gamers";
   const logoPath = initialLogoPath || "/logo.png";
-  const whatsappNumber = initialWaNumber || "6281994870911";
-
-  let cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
-  if (cleanWa.startsWith("0")) {
-    cleanWa = "62" + cleanWa.slice(1);
-  } else if (cleanWa.startsWith("8")) {
-    cleanWa = "62" + cleanWa;
-  }
+  const cleanWa = normalizeWhatsAppNumber(initialWaNumber);
   const waContactLink = `https://wa.me/${cleanWa}?text=Halo%20Admin%20${encodeURIComponent(storeName)}%2C%20saya%20ingin%20bertanya%20seputar%20top%20up%20Robux.`;
 
   // Split store name into primary and secondary words if applicable

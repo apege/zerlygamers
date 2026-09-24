@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -23,6 +23,7 @@ import {
   Tag,
   LogOut,
 } from 'lucide-react';
+import { normalizeWhatsAppNumber } from '@/lib/phoneUtils';
 
 interface AdminSidebarProps {
   currentTab?: string;
@@ -46,6 +47,18 @@ export default function AdminSidebar({
   onCloseMobile,
   orderCounts = { masuk: 0, diproses: 0, selesai: 0, dibatalkan: 0 },
 }: AdminSidebarProps) {
+  const [adminWa, setAdminWa] = useState('6281991541376');
+
+  useEffect(() => {
+    fetch('/api/settings?admin=true&t=' + Date.now(), { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.whatsapp_number) {
+          setAdminWa(normalizeWhatsAppNumber(json.data.whatsapp_number));
+        }
+      })
+      .catch(() => {});
+  }, []);
   const navSections = [
     {
       title: 'ORDER MANAGEMENT',
@@ -226,7 +239,7 @@ export default function AdminSidebar({
             </p>
 
             <a
-              href="https://wa.me/6281991541376?text=Halo%20Admin%20ZerlyGamers%2C%20saya%20butuh%20bantuan"
+              href={`https://wa.me/${adminWa}?text=Halo%20Admin%20ZerlyGamers%2C%20saya%20butuh%20bantuan`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:opacity-95 text-white text-xs font-bold shadow-xs transition-transform active:scale-95"

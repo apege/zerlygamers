@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { AdminOrder } from '@/data/adminDummyData';
+import { normalizeWhatsAppNumber } from '@/lib/phoneUtils';
 
 interface TestimonialTokenModalProps {
   order: AdminOrder;
@@ -24,7 +25,7 @@ export default function TestimonialTokenModal({ order, onClose }: TestimonialTok
   const [copiedMessage, setCopiedMessage] = useState(false);
 
   const cleanToken = order.orderNumber.replace('#', '').trim();
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://zerlygamers.com';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://topupzerlygamers.my.id';
   const testimonialUrl = `${origin}/?review_token=${cleanToken}`;
 
   const messageTemplate = `Halo kak ${order.username}, terima kasih sudah order ${order.item} di Zerly Gamers! ✨\n\nPesanan ${order.orderNumber} telah berhasil kami kirimkan. Boleh minta tolong luangkan waktu sebentar untuk memberikan ulasan & rating bintang kamu? 💖\n\n🔗 Link Ulasan Khusus:\n${testimonialUrl}\n\nToken Order: ${cleanToken}\n\nTerima kasih banyak kak, sukses selalu! 🌸`;
@@ -41,7 +42,8 @@ export default function TestimonialTokenModal({ order, onClose }: TestimonialTok
     setTimeout(() => setCopiedMessage(false), 2000);
   };
 
-  const cleanPhone = order.whatsappNumber ? order.whatsappNumber.replace(/[^0-9]/g, '') : '';
+  const hasPhone = Boolean(order.whatsappNumber && order.whatsappNumber.trim() && order.whatsappNumber !== 'WhatsApp Direct');
+  const cleanPhone = hasPhone ? normalizeWhatsAppNumber(order.whatsappNumber) : '';
   const waUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageTemplate)}`
     : `https://wa.me/?text=${encodeURIComponent(messageTemplate)}`;
